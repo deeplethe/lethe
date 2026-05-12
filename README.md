@@ -70,6 +70,12 @@ one axis, one mental model.
 
 ## Benchmarks
 
+ForgetEval is downstream of the depth model — and the depth model is
+downstream of ForgetEval.  We built one to test the other; the bench
+then reshaped the architecture.  A failing `purge_gdpr` case in
+particular forced `recall(lexical=True)` into the core as a first-class
+primitive.  Both numbers below reflect that loop.
+
 **LongMemEval-S** (500 questions, MemPalace's own methodology, same
 `all-MiniLM-L6-v2`, zero API):
 

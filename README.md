@@ -105,20 +105,7 @@ purge / drift.  Pass / fail is exact substring matching on top-k recall,
 no LLM judge.  Full methodology, adapter contract, and reproduction
 commands: **[docs/forgeteval.md](docs/forgeteval.md)**.
 
-**Multilingual** (Lethe at scale=50, paraphrase-multilingual-MiniLM-L12-v2):
-
-| Lang | super | decay | amnesia | purge | drift | Overall |
-|------|------:|------:|--------:|------:|------:|--------:|
-| en   | 100%  | 100%  | 98%     | 100%  | 99%   | 99.3%   |
-| zh   |  90%  | 100%  |  36%    |  74%  |  90%  | 78%     |
-| ja   |  94%  | 100%  |  44%    |  74%  |  72%  | 77%     |
-
-The CJK drop is real architectural signal — multilingual MiniLM
-clusters CJK tighter than English, and FTS5's default tokenizer splits
-CJK per-character.  Both addressable, both documented in
-[docs/forgeteval.md §10](docs/forgeteval.md).
-
-Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --lang {en|zh|ja} --scale 200`
+Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 200`
 
 ## Architecture
 

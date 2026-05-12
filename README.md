@@ -84,6 +84,11 @@ primitive.  Both numbers below reflect that loop.
 | MemPalace (raw) | 80.6%     | 96.6%     | 98.2%     | 12 min |
 | **Lethe v1**    | **85.4%** | **97.4%** | **99.0%** | 14 min |
 
+Lethe leads at every K; the gap is **6× wider at R@1 than at R@5**
+(+4.8 pp vs +0.8 pp).  Verbatim-everything buys *coverage*, not
+*precision* — it puts the answer somewhere in the top-5, but not
+at the top.
+
 **ForgetEval** (we propose; 1000 cases, 5 families, same embedder, no LLM):
 
 | System        | super | decay | amnesia | purge | drift | Overall                       |

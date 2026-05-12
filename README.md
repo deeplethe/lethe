@@ -15,7 +15,7 @@
 
 ---
 
-Every memory framework right now is racing the same direction.
+## Every memory framework right now is racing the same direction.
 
 Mem0 promises perfect recall. MemPalace promises verbatim retention.
 Letta hands an LLM the whole context and asks it to manage itself. The

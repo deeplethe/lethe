@@ -3,9 +3,8 @@
 </p>
 
 <p align="center">
-  Local-first AI memory. Meets the <b>96.6% R@5 LongMemEval</b> bar — and
-  proposes a new evaluation standard for the inverse axis: <b>forgetting</b>.
-  Zero API calls.
+  Local-first AI memory built on one physical axis — <b>depth</b>.<br/>
+  Forgetting is the architecture, not the absence of it.
 </p>
 
 <p align="center">

@@ -15,7 +15,12 @@ dependencies = [
 embed = ["fastembed>=0.3"]
 llm = ["openai>=1.0"]
 nlp = ["spacy>=3.7"]
+mcp = ["mcp>=1.0"]
 dev = ["pytest>=8", "ruff>=0.4"]
+
+[project.scripts]
+lethe = "lethe.cli:main"
+lethe-mcp = "lethe.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

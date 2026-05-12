@@ -153,6 +153,43 @@ Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 
   lookup by identifier, not a semantic search for "similar customers."
   ForgetEval surfaced this distinction; we made it a first-class API.
 
+## CLI
+
+```bash
+pip install -e .[embed]
+
+lethe inscribe "Alice works at Anthropic."
+lethe recall "Where does Alice work?"
+lethe supersede 1 --new "Alice now at OpenAI."
+lethe blame "Alice's job"
+lethe consolidate                    # apply Hypnos gravity
+lethe log --kind supersede           # event log filtered by kind
+```
+
+DB defaults to `~/.lethe/agent.db`. Override with `--db PATH` or
+`$LETHE_DB`. Any subcommand accepts `--json` for machine-readable output.
+
+## MCP
+
+Lethe ships an MCP server. Add it to Claude Desktop / Claude Code / Cursor
+with:
+
+```json
+{
+  "mcpServers": {
+    "lethe": {
+      "command": "python",
+      "args": ["-m", "lethe.mcp_server"],
+      "env": {"LETHE_DB": "/absolute/path/to/agent.db"}
+    }
+  }
+}
+```
+
+Ten tools are exposed (`inscribe`, `recall`, `release`, `purge`,
+`supersede`, `pin`, `unpin`, `consolidate`, `blame`, `log`) — every core
+operation, no glue code required.
+
 ## Status
 
 `v1.0.0-alpha`. Depth-physics core implemented and tested.
@@ -165,7 +202,6 @@ $ pytest tests
 Next:
 - **Cryptographic receipts.** `surrender(mode="purge")` will return a
   signed Merkle proof of erasure for GDPR-grade compliance.
-- **CLI.** `lethe blame "user's job"` for time-travel introspection.
 - **ForgetEval expansion.** 250 templated cases is a start; 1000+
   adversarial cases and human-curated edge cases come next.
 

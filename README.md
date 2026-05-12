@@ -68,28 +68,6 @@ depth     state                          how it got there
 No `weight`. No `alive` flag. No `superseded_at` column. One number,
 one axis, one mental model.
 
-```python
-from lethe import Lethe
-
-agent = Lethe("./agent.db")
-
-mid = agent.inscribe("Alice works at Anthropic.")
-agent.recall("Where does Alice work?")
-
-# Four forces sink a memory
-agent.surrender(mid, mode="decay")                       # depth *= 0.5
-agent.surrender(mid, mode="release")                     # depth = 0
-agent.surrender({"old": mid, "new": "Alice now at OpenAI."},
-                mode="supersede")                        # old sinks, new floats
-agent.surrender(mid, mode="purge")                       # delete from disk
-
-agent.pin(mid)              # depth = +∞
-agent.consolidate()         # apply gravity to everything else
-
-agent.recall("Where does Alice work?", at=t_last_week)   # time-travel
-agent.blame("Alice's job")                               # supersession chain
-```
-
 ## Benchmarks
 
 **LongMemEval-S** (500 questions, MemPalace's own methodology, same
@@ -141,7 +119,20 @@ Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 
 pip install -e .[embed]
 ```
 
-**Library** — see the code block above.
+**Library**:
+
+```python
+from lethe import Lethe
+
+agent = Lethe("./agent.db")
+mid = agent.inscribe("Alice works at Anthropic.")
+
+agent.surrender(mid, mode="release")            # depth → 0
+agent.surrender({"old": mid, "new": "Alice now at OpenAI."},
+                mode="supersede")               # old sinks, new surfaces
+agent.surrender(mid, mode="purge")              # erased from disk
+agent.pin(mid)                                  # depth → +∞
+```
 
 **CLI** — one subcommand per primitive:
 

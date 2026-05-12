@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="assets/logo.svg" alt="Lethe" width="120" />
+  <img src="assets/logo.png" alt="Lethe" width="320" />
 </p>
-
-<h1 align="center">Lethe</h1>
 
 <p align="center">
   Local-first AI memory. Forgetting as a first-class operation —

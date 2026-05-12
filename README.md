@@ -188,6 +188,10 @@ lethe supersede 1 --new "Alice now at OpenAI."
 lethe blame "Alice's job"
 lethe consolidate                    # apply Hypnos gravity
 lethe log --kind supersede           # event log filtered by kind
+
+# Batch-inscribe a directory.  Paragraph-level chunks, verbatim.
+lethe ingest ~/notes                       # default: *.md *.txt *.rst
+lethe ingest ./docs --glob '*.md' --batch 512
 ```
 
 DB defaults to `~/.lethe/agent.db`. Override with `--db PATH` or
@@ -224,8 +228,6 @@ $ pytest tests
 ```
 
 Next:
-- **`lethe ingest DIR/`.** Batch-inscribe a directory in one command,
-  parity with `mempalace mine`.
 - **ForgetEval expansion.** 250 templated cases is a start; 1000+
   adversarial cases (long-form facts, multi-language paraphrase, heavy
   distractor pollution) come next.

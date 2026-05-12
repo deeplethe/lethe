@@ -100,6 +100,44 @@ def cmd_inscribe(args):
         lethe.close()
 
 
+def cmd_ingest(args):
+    from lethe.ingest import DEFAULT_PATTERNS, ingest, iter_files
+    root = Path(args.path)
+    if not root.exists():
+        raise SystemExit(f"path does not exist: {root}")
+    patterns = args.glob or list(DEFAULT_PATTERNS)
+    lethe = _open(args, need_embedder=True)
+    try:
+        if root.is_file():
+            files = [root]
+        else:
+            files = list(iter_files(root, patterns))
+        if not files:
+            raise SystemExit(
+                f"no files matched {patterns} under {root}"
+            )
+        def progress(s):
+            if not args.json:
+                print(f"  scanned={s['files_scanned']:>5}  "
+                      f"chunks={s['chunks']:>6}  "
+                      f"({s['wall_seconds']}s)", flush=True)
+        if not args.json:
+            print(f"ingesting {len(files)} file(s) under {root}:")
+        stats = ingest(lethe, files,
+                       encoding=args.encoding,
+                       min_len=args.min_len,
+                       batch=args.batch,
+                       on_progress=progress)
+        _emit(args, stats, [
+            f"done: scanned {stats['files_scanned']}, "
+            f"skipped {stats['files_skipped']}, "
+            f"inscribed {stats['chunks']} chunks "
+            f"in {stats['wall_seconds']}s",
+        ])
+    finally:
+        lethe.close()
+
+
 def cmd_recall(args):
     need_emb = not args.lexical
     lethe = _open(args, need_embedder=need_emb)
@@ -341,6 +379,18 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("inscribe", help="store a fact")
     s.add_argument("text")
     s.set_defaults(fn=cmd_inscribe)
+
+    s = sub.add_parser("ingest",
+                       help="batch-inscribe every paragraph of every text file under a directory")
+    s.add_argument("path", help="file or directory")
+    s.add_argument("--glob", action="append",
+                   help="filename glob (repeat for multiple; default: *.md *.txt *.rst)")
+    s.add_argument("--encoding", default="utf-8")
+    s.add_argument("--min-len", type=int, default=16,
+                   help="discard chunks shorter than N chars (default 16)")
+    s.add_argument("--batch", type=int, default=256,
+                   help="inscribe batch size (default 256)")
+    s.set_defaults(fn=cmd_ingest)
 
     s = sub.add_parser("recall", help="retrieve memories")
     s.add_argument("query")

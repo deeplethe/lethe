@@ -43,7 +43,16 @@ un-forgetting.**
 
 ## The model
 
-Every fact has one number: `depth`. Every operation is a force on it.
+In the myth, Lethe is a river — surface, current, bed.  Everything in
+the water has a depth.  A leaf floats; a stone sinks; some things are
+weighed down enough to disappear.
+
+Graph stores answer *what is connected to what.*  Vector stores answer
+*what is semantically similar.*  Neither answers the question agent
+memory actually faces: *how deep is this fact, right now?*
+
+We built the simplest mental model that fits: every fact has one
+number — `depth`.  Every operation is a force on it.
 
 ```
 depth     state                          how it got there

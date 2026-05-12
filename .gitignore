@@ -1,0 +1,17 @@
+.env
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+bench/_runs_*/
+bench/longmemeval_*.json
+bench/results_*.jsonl

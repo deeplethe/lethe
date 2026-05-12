@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lethe"
+version = "1.0.0a0"
+description = "A river for AI memory. Forgetting is the architecture."
+requires-python = ">=3.10"
+dependencies = [
+    "sqlite-vec>=0.1.6",
+]
+
+[project.optional-dependencies]
+embed = ["fastembed>=0.3"]
+llm = ["openai>=1.0"]
+nlp = ["spacy>=3.7"]
+dev = ["pytest>=8", "ruff>=0.4"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lethe*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

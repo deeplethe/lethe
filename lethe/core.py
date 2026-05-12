@@ -71,6 +71,7 @@ class Lethe:
         embedder: Optional[Callable[[str], list[float]]] = None,
         embedder_batch: Optional[Callable[[list[str]], list[list[float]]]] = None,
         llm: Optional[Callable[[str], str]] = None,
+        signing_key: Optional[bytes] = None,
     ):
         self.db_path = str(db_path)
         self.vector_dim = vector_dim
@@ -85,6 +86,11 @@ class Lethe:
         else:
             self.embedder_batch = None
         self.llm = llm
+        # Optional Ed25519 private key (32 bytes) for purge receipts.
+        # When set, callers can request a signed PurgeReceipt via
+        # purge_with_receipt().  Receipts let third parties verify a
+        # deletion happened and the event log has not been tampered with.
+        self.signing_key = signing_key
 
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.enable_load_extension(True)
@@ -512,6 +518,62 @@ class Lethe:
             self.conn.execute("DELETE FROM memory_fts WHERE rowid = ?", (mid,))
         self.conn.commit()
         return len(ids)
+
+    def purge_with_receipt(self, target):
+        """Purge + issue an Ed25519-signed receipt anchored to the event-log
+        Merkle root.  Requires `signing_key` at construction time.
+
+        Returns a PurgeReceipt; verify with `lethe.receipt.verify_receipt`.
+        """
+        if self.signing_key is None:
+            raise RuntimeError(
+                "Lethe(...) needs signing_key=<32 bytes> to issue receipts. "
+                "Generate one via `lethe.receipt.generate_key()`."
+            )
+        from lethe.receipt import (
+            PurgeReceipt, event_hash, merkle_root,
+            public_key_from_private, sign, text_hash,
+        )
+        ids = self._coerce_ids(target)
+        # Snapshot the texts BEFORE delete, so the receipt records what was
+        # actually erased (the row will be gone afterward).
+        rows = self.conn.execute(
+            f"SELECT rowid, text FROM memory "
+            f"WHERE rowid IN ({','.join('?' * len(ids))})",
+            ids,
+        ).fetchall()
+        text_hashes_by_id = {rid: text_hash(text) for rid, text in rows}
+        n = self._purge(target)
+        # Collect the purge events just produced (one per id).
+        purge_evs = self.conn.execute(
+            f"""SELECT id FROM event
+                WHERE kind='purge'
+                  AND memory_id IN ({','.join('?' * len(ids))})
+                ORDER BY id DESC LIMIT ?""",
+            ids + [len(ids)],
+        ).fetchall()
+        purge_event_ids = sorted(r[0] for r in purge_evs)
+        # Snapshot the entire event log and commit to its Merkle root.
+        all_events = self.conn.execute(
+            "SELECT id, memory_id, kind, depth_before, depth_after, "
+            "timestamp, meta FROM event ORDER BY id"
+        ).fetchall()
+        last_id = all_events[-1][0] if all_events else 0
+        root = merkle_root([event_hash(r) for r in all_events])
+        pub = public_key_from_private(self.signing_key)
+        receipt = PurgeReceipt(
+            version="1",
+            purged_ids=list(ids),
+            purged_text_hashes=[text_hashes_by_id.get(rid, "") for rid in ids],
+            purge_event_ids=purge_event_ids,
+            last_event_id=last_id,
+            event_log_merkle_root=root.hex(),
+            timestamp=time(),
+            public_key=pub.hex(),
+        )
+        receipt.signature = sign(receipt.canonical_payload(),
+                                 self.signing_key).hex()
+        return receipt
 
     # ─── pin (was: mnemosyne) ────────────────────────────────────────
 

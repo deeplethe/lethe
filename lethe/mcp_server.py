@@ -50,11 +50,25 @@ def _embedder():
     return embed
 
 
+def _signing_key() -> Optional[bytes]:
+    """Load Ed25519 signing key for purge receipts.  Env: LETHE_SIGNING_KEY
+    is a path to the key file; falls back to ~/.lethe/keys/purge_signing.key
+    if it exists.  Returns None if no key is configured (purge_signed will
+    raise)."""
+    from lethe.receipt import default_key_path, load_private_key
+    explicit = os.environ.get("LETHE_SIGNING_KEY")
+    path = Path(explicit) if explicit else default_key_path()
+    if path.exists():
+        return load_private_key(path)
+    return None
+
+
 def _get() -> Lethe:
     global _LETHE
     if _LETHE is None:
         dim = int(os.environ.get("LETHE_DIM", "384"))
-        _LETHE = Lethe(_db_path(), vector_dim=dim, embedder=_embedder())
+        _LETHE = Lethe(_db_path(), vector_dim=dim, embedder=_embedder(),
+                       signing_key=_signing_key())
     return _LETHE
 
 
@@ -105,6 +119,17 @@ def purge(ids: list[int]) -> dict:
     GDPR / compliance — irreversible at the data level."""
     n = _get().surrender(ids, mode="purge")
     return {"purged": n}
+
+
+@mcp.tool()
+def purge_signed(ids: list[int]) -> dict:
+    """Hard-delete + return an Ed25519-signed PurgeReceipt anchored to the
+    event-log Merkle root.  Lets third parties verify, without database
+    access, that the deletion was acknowledged at a specific moment.
+
+    Requires a signing key (env LETHE_SIGNING_KEY or default key file)."""
+    receipt = _get().purge_with_receipt(ids)
+    return receipt.to_dict()
 
 
 @mcp.tool()

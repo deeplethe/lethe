@@ -155,6 +155,28 @@ Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 
   lookup by identifier, not a semantic search for "similar customers."
   ForgetEval surfaced this distinction; we made it a first-class API.
 
+## Verifiable forgetting
+
+`purge` is the only delete that hits disk, so it's also the only one
+compliance cares about. Lethe issues an **Ed25519-signed receipt** for
+every signed purge — the receipt commits to the *entire event log* via
+a Merkle root, so any subsequent tampering with the audit trail
+invalidates verification.
+
+```bash
+lethe keygen                              # one-time: generate signing key
+lethe --db agent.db purge --signed 42     # delete id 42, emit receipt JSON
+lethe verify-receipt receipt.json         # signature only (no DB needed)
+lethe verify-receipt receipt.json \
+      --db agent.db --db-check            # also recompute Merkle root
+```
+
+Without database access, a verifier can confirm *the signer made this
+claim at time T*. With the database, the verifier additionally confirms
+*the event log has not been edited since*. No other open-source memory
+framework can produce this guarantee — it falls out of having an
+append-only event log in the first place.
+
 ## CLI
 
 ```bash
@@ -202,10 +224,11 @@ $ pytest tests
 ```
 
 Next:
-- **Cryptographic receipts.** `surrender(mode="purge")` will return a
-  signed Merkle proof of erasure for GDPR-grade compliance.
+- **`lethe ingest DIR/`.** Batch-inscribe a directory in one command,
+  parity with `mempalace mine`.
 - **ForgetEval expansion.** 250 templated cases is a start; 1000+
-  adversarial cases and human-curated edge cases come next.
+  adversarial cases (long-form facts, multi-language paraphrase, heavy
+  distractor pollution) come next.
 
 ## License
 

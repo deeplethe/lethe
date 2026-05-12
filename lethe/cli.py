@@ -54,10 +54,20 @@ def _make_embedder(model_name: str):
     return embed
 
 
-def _open(args, *, need_embedder: bool) -> Lethe:
+def _open(args, *, need_embedder: bool, need_signing: bool = False) -> Lethe:
     db_path = args.db or _default_db()
     embedder = _make_embedder(args.embedder) if need_embedder else None
-    return Lethe(db_path, vector_dim=args.dim, embedder=embedder)
+    signing_key = None
+    if need_signing:
+        from lethe.receipt import default_key_path, load_private_key
+        key_path = Path(getattr(args, "key", None) or default_key_path())
+        if not key_path.exists():
+            raise SystemExit(
+                f"no signing key at {key_path}. run `lethe keygen` first."
+            )
+        signing_key = load_private_key(key_path)
+    return Lethe(db_path, vector_dim=args.dim, embedder=embedder,
+                 signing_key=signing_key)
 
 
 def _parse_time(s: Optional[str]) -> Optional[float]:
@@ -131,12 +141,73 @@ def cmd_release(args):
 
 
 def cmd_purge(args):
-    lethe = _open(args, need_embedder=False)
+    if args.signed:
+        lethe = _open(args, need_embedder=False, need_signing=True)
+        try:
+            receipt = lethe.purge_with_receipt(args.ids)
+            d = receipt.to_dict()
+            if args.json:
+                print(json.dumps(d))
+            else:
+                # Default: emit the receipt as JSON regardless — receipts are
+                # designed to be persisted/shared, not eyeballed.
+                print(json.dumps(d, indent=2))
+        finally:
+            lethe.close()
+    else:
+        lethe = _open(args, need_embedder=False)
+        try:
+            n = lethe.surrender(args.ids, mode="purge")
+            _emit(args, {"purged": n}, [f"purged {n}"])
+        finally:
+            lethe.close()
+
+
+def cmd_keygen(args):
+    from lethe.receipt import (
+        default_key_path, generate_key, save_private_key,
+        public_key_from_private,
+    )
+    out = Path(args.out) if args.out else default_key_path()
+    if out.exists() and not args.force:
+        raise SystemExit(
+            f"refusing to overwrite existing key at {out}. "
+            f"pass --force or choose a different --out."
+        )
+    priv, pub = generate_key()
+    save_private_key(out, priv)
+    payload = {"private_key_path": str(out), "public_key": pub.hex()}
+    if args.json:
+        print(json.dumps(payload))
+    else:
+        print(f"wrote private key: {out}")
+        print(f"public key:        {pub.hex()}")
+
+
+def cmd_verify_receipt(args):
+    from lethe.receipt import PurgeReceipt, verify_receipt
+    data = json.loads(Path(args.receipt).read_text(encoding="utf-8"))
+    receipt = PurgeReceipt.from_dict(data)
+    lethe = None
+    if args.db_check:
+        lethe = _open(args, need_embedder=False)
     try:
-        n = lethe.surrender(args.ids, mode="purge")
-        _emit(args, {"purged": n}, [f"purged {n}"])
+        result = verify_receipt(receipt, lethe)
     finally:
-        lethe.close()
+        if lethe is not None:
+            lethe.close()
+    if args.json:
+        print(json.dumps(result))
+    else:
+        verdict = "VALID" if result["valid"] else "INVALID"
+        print(f"  verdict:         {verdict}")
+        print(f"  signature_valid: {result['signature_valid']}")
+        print(f"  log_root_valid:  {result['log_root_valid']}")
+        if result["issues"]:
+            print(f"  issues:")
+            for i in result["issues"]:
+                print(f"    - {i}")
+    return 0 if result["valid"] else 1
 
 
 def cmd_supersede(args):
@@ -287,7 +358,25 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("purge", help="delete from disk (compliance)")
     s.add_argument("ids", nargs="+", type=int)
+    s.add_argument("--signed", action="store_true",
+                   help="issue an Ed25519 signed PurgeReceipt (requires keygen)")
+    s.add_argument("--key", help="path to signing key (default: ~/.lethe/keys/purge_signing.key)")
     s.set_defaults(fn=cmd_purge)
+
+    s = sub.add_parser("keygen",
+                       help="generate Ed25519 keypair for purge receipts")
+    s.add_argument("--out", help="output path (default: ~/.lethe/keys/purge_signing.key)")
+    s.add_argument("--force", action="store_true",
+                   help="overwrite existing key file")
+    s.set_defaults(fn=cmd_keygen)
+
+    s = sub.add_parser("verify-receipt",
+                       help="verify a PurgeReceipt JSON file")
+    s.add_argument("receipt", help="path to receipt JSON")
+    s.add_argument("--db-check", action="store_true",
+                   help="also recompute Merkle root from --db and compare "
+                        "(detects post-hoc event log tampering)")
+    s.set_defaults(fn=cmd_verify_receipt)
 
     s = sub.add_parser("supersede", help="replace an old fact with a new one")
     s.add_argument("old_id", type=int)

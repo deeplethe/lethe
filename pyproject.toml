@@ -25,6 +25,7 @@ embed = ["fastembed>=0.3"]
 llm = ["openai>=1.0"]
 nlp = ["spacy>=3.7"]
 mcp = ["mcp>=1.0"]
+crypto = ["cryptography>=42.0"]
 dev = ["pytest>=8", "ruff>=0.4"]
 
 [project.scripts]

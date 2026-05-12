@@ -3,8 +3,9 @@
 </p>
 
 <p align="center">
-  Local-first AI memory. Forgetting as a first-class operation —
-  <b>97.4% R@5</b> on LongMemEval, <b>99.3%</b> on ForgetEval (1000 cases), zero API calls.
+  Local-first AI memory. Meets the <b>96.6% R@5 LongMemEval</b> bar — and
+  proposes a new evaluation standard for the inverse axis: <b>forgetting</b>.
+  Zero API calls.
 </p>
 
 <p align="center">
@@ -153,7 +154,22 @@ must NOT be touched). Mem0 drops to 70% and 75% there; Lethe holds 98%
 and 100% because release uses adaptive-gap clustering and purge uses
 the dedicated `recall(lexical=True)` primitive.
 
-Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 200`
+**Multilingual** (Lethe, scale=50 = 250 cases, multilingual MiniLM):
+
+| Lang | super | decay | amnesia | purge | drift | Overall  |
+|------|------:|------:|--------:|------:|------:|---------:|
+| en   | 100%  | 100%  | 98%     | 100%  | 99%   | **99.3%** (1000 cases) |
+| zh   |  90%  | 100%  |  36%    |  74%  |  90%  |  78%     |
+| ja   |  94%  | 100%  |  44%    |  74%  |  72%  |  77%     |
+
+The drop is real signal, not a bug.  Two weaknesses surface together:
+the embedder (multilingual MiniLM clusters CJK tighter than English so
+adaptive-gap release misses splits) and the FTS5 tokenizer (default
+`porter unicode61` splits CJK per-character, so BM25-driven purge
+loses precision).  Both are addressable in roadmap: train-time
+embedder choice, plus a CJK-aware tokenizer for the lexical leg.
+
+Reproduce: `py bench/forgeteval/run.py --adapter lethe --lang {en|zh|ja} --scale 50`
 
 ## Architecture
 

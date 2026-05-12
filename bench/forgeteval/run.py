@@ -87,7 +87,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--adapter", default="lethe",
                         choices=["lethe", "mem0", "mempalace"])
-    parser.add_argument("--embedder", default="sentence-transformers/all-MiniLM-L6-v2")
+    parser.add_argument("--lang", default="en", choices=["en", "zh", "ja"],
+                        help="Case language pool (en/zh/ja). "
+                             "Non-English auto-switches the default embedder "
+                             "to a multilingual MiniLM unless --embedder is set.")
+    parser.add_argument("--embedder", default=None,
+                        help="Override embedder model name (default depends on --lang)")
     parser.add_argument("--dim", type=int, default=384)
     parser.add_argument("--scale", type=int, default=0,
                         help="If >0, generate N template cases per family "
@@ -99,6 +104,14 @@ def main() -> None:
 
     if sys.stdout.encoding.lower() != "utf-8":
         sys.stdout.reconfigure(encoding="utf-8")
+
+    # Default embedder depends on language: English MiniLM for en, multilingual
+    # MiniLM for zh/ja.  --embedder overrides for any language.
+    if args.embedder is None:
+        if args.lang == "en":
+            args.embedder = "sentence-transformers/all-MiniLM-L6-v2"
+        else:
+            args.embedder = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
     if args.adapter == "lethe":
         print(f"loading embedder: {args.embedder}")
@@ -120,7 +133,10 @@ def main() -> None:
     if args.scale > 0:
         from bench.forgeteval.generate import generate
         test_set = generate(args.scale, seed=args.seed,
-                            distractors=args.distractors)
+                            distractors=args.distractors,
+                            lang=args.lang)
+    elif args.lang != "en":
+        raise SystemExit("non-English smoke set not curated; use --scale N")
     else:
         test_set = ALL_TESTS
 

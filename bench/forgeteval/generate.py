@@ -173,20 +173,24 @@ _DISTRACTORS: int = 4
 
 
 def _scatter(facts: list[str], rng: random.Random,
+             fillers: Optional[list[str]] = None,
              n: Optional[int] = None) -> list[str]:
     """Sprinkle n distractor facts into a setup list at random positions.
-    Defaults to the module-level _DISTRACTORS (set by generate()).
-    Samples with replacement when n exceeds the FILLER pool size."""
+    `fillers` defaults to the module-level FILLER (English).  `n` defaults
+    to the module-level _DISTRACTORS (set by generate()).  Samples with
+    replacement when n exceeds the pool size — needed for stress mode."""
+    if fillers is None:
+        fillers = FILLER
     if n is None:
         n = _DISTRACTORS
     if n <= 0:
         return list(facts)
-    if n <= len(FILLER):
-        fillers = rng.sample(FILLER, n)
+    if n <= len(fillers):
+        chosen = rng.sample(fillers, n)
     else:
-        fillers = [rng.choice(FILLER) for _ in range(n)]
+        chosen = [rng.choice(fillers) for _ in range(n)]
     out = list(facts)
-    for f in fillers:
+    for f in chosen:
         out.insert(rng.randint(0, len(out)), f)
     return out
 
@@ -559,21 +563,36 @@ FAMILIES: dict[str, list] = {
 
 
 def generate(n_per_family: int, seed: int = 42,
-             distractors: int = 4) -> list[GeneratedCase]:
+             distractors: int = 4,
+             lang: str = "en") -> list[GeneratedCase]:
     """Round-robin through each family's sub-templates to give variety.
     `distractors` controls how many unrelated filler facts get mixed
-    into each case's setup — bump to 50+ for stress testing."""
+    into each case's setup — bump to 50+ for stress testing.
+    `lang` selects the entity pool / template module: en / zh / ja.
+    Non-English langs require a multilingual embedder for evaluation
+    (paraphrase-multilingual-MiniLM-L12-v2 is the default in run.py)."""
     global _DISTRACTORS
     old = _DISTRACTORS
     _DISTRACTORS = distractors
     try:
+        if lang == "en":
+            families = FAMILIES
+        elif lang == "zh":
+            from bench.forgeteval import lang_zh
+            families = lang_zh.FAMILIES
+        elif lang == "ja":
+            from bench.forgeteval import lang_ja
+            families = lang_ja.FAMILIES
+        else:
+            raise ValueError(f"unsupported lang: {lang!r}; "
+                             f"expected one of: en / zh / ja")
         rng = random.Random(seed)
         out: list[GeneratedCase] = []
-        for family, gens in FAMILIES.items():
+        for family, gens in families.items():
             for i in range(n_per_family):
                 gen = gens[i % len(gens)]
                 case = gen(rng)
-                case.id = f"{family}__{gen.__name__.lstrip('_')}__{i:03d}"
+                case.id = f"{lang}__{family}__{gen.__name__.lstrip('_')}__{i:03d}"
                 out.append(case)
         return out
     finally:

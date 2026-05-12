@@ -276,12 +276,55 @@ each — write a new one and submit a PR; we'll cross-publish results.
 
 ---
 
-## 10. Limitations
+## 10. Multilingual
+
+`--lang en|zh|ja` selects native-language entity pools and phrasing.
+Each non-English module
+([`lang_zh.py`](../bench/forgeteval/lang_zh.py),
+[`lang_ja.py`](../bench/forgeteval/lang_ja.py))
+mirrors the English structure: four sub-templates per family, native
+filler facts, the same case anatomy.
+
+`run.py` auto-switches the default embedder to
+`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` for any
+non-English language; pass `--embedder` to override.
+
+Lethe scale=50 (250 cases per language):
+
+| Lang | super | decay | amnesia | purge | drift | Overall |
+|------|------:|------:|--------:|------:|------:|--------:|
+| en   | 100%  | 100%  | 98%     | 100%  | 99%   | 99.3% (at 1000 cases) |
+| zh   |  90%  | 100%  |  36%    |  74%  |  90%  | 78%     |
+| ja   |  94%  | 100%  |  44%    |  74%  |  72%  | 77%     |
+
+The drop on CJK is **real signal, not a bug** — and surfaces two
+addressable architectural choices:
+
+- The default multilingual embedder (paraphrase-multilingual-MiniLM-L12-v2)
+  clusters CJK text more tightly than English, so the adaptive-gap
+  release heuristic cannot find a clean split point.  Amnesia is the
+  family most exposed to this (98% → 36–44%).
+- The default FTS5 tokenizer (`porter unicode61`) splits CJK
+  per-character, which destroys word-level BM25 ranking.  Purge,
+  which depends on `recall(lexical=True)`, drops to 74% even though
+  identifier strings (emails, API keys) are still ASCII.
+
+Roadmap on the CJK side:
+
+- Stronger multilingual embedder (`BAAI/bge-m3` or
+  `intfloat/multilingual-e5-large`) — option, not default, because
+  they are 5–10× the size.
+- CJK-aware FTS5 tokenizer (e.g. `unicode61 tokenchars`, jieba for
+  zh, MeCab for ja) — plug-in at schema-init time.
+
+## 11. Limitations
 
 ForgetEval v0 is intentionally narrow.  Honest weaknesses:
 
-- **English only.**  Entity pools and queries are English.  Multilingual
-  paraphrase robustness is not tested.
+- **Three languages.**  English / Chinese / Japanese only.  Korean,
+  Arabic, Hindi etc. are not yet covered.
+- **Same-language only.**  Cross-lingual paraphrase (English facts,
+  Chinese queries) is not tested.
 - **Short facts.**  Most setup facts are one sentence.  Long-form
   document forgetting (paragraph-level supersede) is touched only by
   `supersession_long_form` and `amnesia_many_facts`.
@@ -297,16 +340,18 @@ ForgetEval v0 is intentionally narrow.  Honest weaknesses:
 
 Roadmap:
 
-- v0.2: 1000+ cases, multilingual pairs (en/zh/ja), human-curated
-  adversarial layer.
-- v0.3: temporal-reasoning probes (recall at past timestamps —
+- v0.2: 1000+ cases per language, human-curated adversarial layer,
+  CJK-aware tokenizer for the lexical-purge path.
+- v0.3: cross-lingual paraphrase (English facts, queries in other
+  languages and vice versa).
+- v0.4: temporal-reasoning probes (recall at past timestamps —
   `lethe.recall(at=T)` and analogs).
-- v0.4: cryptographic-receipt verification family (does the system
+- v0.5: cryptographic-receipt verification family (does the system
   produce auditable proof of deletion?).
 
 ---
 
-## 11. Comparison to LongMemEval
+## 12. Comparison to LongMemEval
 
 | Dimension          | LongMemEval                          | ForgetEval                                |
 |--------------------|--------------------------------------|-------------------------------------------|

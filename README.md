@@ -4,7 +4,7 @@
 
 <p align="center">
   <b>Lethe is more than agent memory.</b><br/>
-  <b>It's the operation everyone else avoids — forgetting.</b>
+  <b>It's the first AI memory built to forget.</b>
 </p>
 
 <p align="center">

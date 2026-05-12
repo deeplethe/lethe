@@ -1,4 +1,19 @@
-# Lethe
+<p align="center">
+  <h1 align="center">Lethe</h1>
+</p>
+
+<p align="center">
+  Local-first AI memory. Forgetting as a first-class operation —
+  <b>97.4% R@5</b> on LongMemEval, <b>100%</b> on ForgetEval, zero API calls.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/version-1.0.0--alpha-blue" alt="version" />
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="python" />
+  <img src="https://img.shields.io/badge/license-TBD-lightgrey" alt="license" />
+</p>
+
+---
 
 Every memory framework right now is racing the same direction.
 

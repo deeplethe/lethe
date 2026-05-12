@@ -111,19 +111,29 @@ Reproduce: `py bench/longmemeval_v1_subdoc.py bench/longmemeval_s.json`
 
 ### ForgetEval — the axis nobody benchmarks
 
-250 generated tests across five families. Each one is structurally easy
-for a system that forgets and structurally impossible for one that doesn't.
+We propose **ForgetEval**, a benchmark methodology for the one operation
+every other AI memory framework treats as failure: *forgetting on
+command*.  Five families of test cases — supersession, decay, amnesia,
+purge, drift — each probing one structural property a memory system
+must exhibit to be safe in production.
 
-| Family       | Operation       | What it tests                                                  |
-|--------------|-----------------|----------------------------------------------------------------|
-| supersession | `supersede`     | New fact wins; old fact does not surface                       |
-| decay        | `release`       | A released fact stays out of top-k                             |
-| amnesia      | `release`       | Forget one subject; siblings survive                           |
+| Family       | Operation       | What it tests                                                    |
+|--------------|-----------------|------------------------------------------------------------------|
+| supersession | `supersede`     | New fact wins; old fact does not surface                         |
+| decay        | `release`       | A released fact stays out of top-k                               |
+| amnesia      | `release`       | Forget one subject; siblings survive                             |
 | purge        | `purge`         | Hard-delete by identifier (GDPR / PHI / keys) — exact, not fuzzy |
-| drift        | `supersede` × N | Chain of updates; the latest belief wins                       |
+| drift        | `supersede` × N | Chain of updates; the latest belief wins                         |
 
-Each case mixes the target facts with 3–5 unrelated distractor facts.
-Deterministic via seed, no LLM, no API.
+Every case is short, deterministic, and reproducible without an LLM:
+inscribe a small set of facts (mixed with unrelated distractors), apply
+a mutation, then check whether the right thing surfaces and the wrong
+thing doesn't.  Pass / fail is exact substring matching over top-k
+recall — no judge model, no ambiguity.
+
+See **[docs/forgeteval.md](docs/forgeteval.md)** for the full
+methodology: case anatomy, generation protocol, adapter contract,
+scoring rules, and how to evaluate a new memory system.
 
 | System        | super | decay | amnesia | purge | drift | Overall                          | Wall   |
 |---------------|------:|------:|--------:|------:|------:|---------------------------------:|-------:|

@@ -317,9 +317,12 @@ Roadmap:
 | Requires LLM judge | Optional (for generation variant)    | No                                        |
 | Capability gaps    | Reported as low R@K                  | Reported as N/A — honest about primitives |
 
-They complement each other.  Lethe's published numbers
-(97.4% R@5 on LongMemEval-S; 99–100% on ForgetEval depending on
-scale) intentionally cover both.
+They complement each other.  Lethe's published numbers — 97.4% R@5 on
+LongMemEval-S and 99.3% on ForgetEval at 1000 cases — intentionally
+cover both.  Mem0 scores 88.8% on the same 1000-case ForgetEval,
+weakest on amnesia (70%) and purge (75%).  MemPalace returns 0/1000
+because the operations don't exist in its API — that is reported as
+N/A across every family.
 
 ---
 

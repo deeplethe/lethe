@@ -93,6 +93,8 @@ def main() -> None:
                         help="If >0, generate N template cases per family "
                              "(5 families); 0 uses the hand-crafted 15.")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--distractors", type=int, default=4,
+                        help="Filler facts mixed into each case (default 4)")
     args = parser.parse_args()
 
     if sys.stdout.encoding.lower() != "utf-8":
@@ -117,7 +119,8 @@ def main() -> None:
 
     if args.scale > 0:
         from bench.forgeteval.generate import generate
-        test_set = generate(args.scale, seed=args.seed)
+        test_set = generate(args.scale, seed=args.seed,
+                            distractors=args.distractors)
     else:
         test_set = ALL_TESTS
 

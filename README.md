@@ -4,7 +4,7 @@
 
 <p align="center">
   Local-first AI memory. Forgetting as a first-class operation —
-  <b>97.4% R@5</b> on LongMemEval, <b>100%</b> on ForgetEval, zero API calls.
+  <b>97.4% R@5</b> on LongMemEval, <b>99.3%</b> on ForgetEval (1000 cases), zero API calls.
 </p>
 
 <p align="center">
@@ -135,17 +135,25 @@ See **[docs/forgeteval.md](docs/forgeteval.md)** for the full
 methodology: case anatomy, generation protocol, adapter contract,
 scoring rules, and how to evaluate a new memory system.
 
-| System        | super | decay | amnesia | purge | drift | Overall                          | Wall   |
-|---------------|------:|------:|--------:|------:|------:|---------------------------------:|-------:|
-| **Lethe v1**  | 50/50 | 50/50 | 50/50   | 50/50 | 50/50 | **250 / 250 · 100%**             | 42 s   |
-| Mem0 (2.0.2)  | 50/50 | 50/50 | 41/50   | 36/50 | 50/50 | 227 / 250 · 91%                  | 151 s  |
-| MemPalace     | N/A   | N/A   | N/A     | N/A   | N/A   | 0 / 250 (no forgetting primitives) | 121 s  |
+**1000 cases** (200 per family, four sub-templates rotating, 4 distractors each):
+
+| System        | super     | decay     | amnesia   | purge     | drift     | Overall                              | Wall    |
+|---------------|----------:|----------:|----------:|----------:|----------:|-------------------------------------:|--------:|
+| **Lethe v1**  | 200 / 200 | 200 / 200 | 195 / 200 | 200 / 200 | 198 / 200 | **993 / 1000 · 99.3%**               | 13 min  |
+| Mem0 (2.0.2)  | 200 / 200 | 200 / 200 | 139 / 200 |  150 / 200 | 199 / 200 | 888 / 1000 · 88.8%                  | 27 min  |
+| MemPalace     | N/A       | N/A       | N/A       | N/A       | N/A       | 0 / 1000 (no forgetting primitives)  | 18 min  |
 
 MemPalace's zeros are not a benchmark failure. They are an honest report
 that the library was built without `supersede`, `release`, or `purge`.
 ForgetEval makes the capability gap visible.
 
-Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 50`
+Where the systems diverge most: **amnesia** (forget one entity, peers
+survive) and **purge** (delete by identifier, near-paraphrase siblings
+must NOT be touched). Mem0 drops to 70% and 75% there; Lethe holds 98%
+and 100% because release uses adaptive-gap clustering and purge uses
+the dedicated `recall(lexical=True)` primitive.
+
+Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 200`
 
 ## Architecture
 

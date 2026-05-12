@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
+from typing import Optional
 
 
 # ─── entity pools ──────────────────────────────────────────────────
@@ -73,6 +74,8 @@ CONDITIONS = [
 
 # Filler facts: unrelated to any topic above so they don't bleed into
 # must_contain/must_not_contain checks.  Used to make retrieval harder.
+# Each entry is checked to avoid sharing tokens with the entity pools
+# (NAMES / COMPANIES / CITIES / COLORS / DIETS / THEMES etc.).
 FILLER = [
     "The conference room moved to the 4th floor.",
     "Coffee machine is offline on Tuesdays.",
@@ -94,6 +97,36 @@ FILLER = [
     "Visitor badges expire at end of day.",
     "Building HVAC inspection happens in April.",
     "Snack bar restock day is Monday.",
+    "The fire extinguisher inspection is overdue.",
+    "Reception will close 30 minutes early on holidays.",
+    "Recycling pickup is twice a week.",
+    "Whiteboards in meeting pods were cleaned last weekend.",
+    "Bathroom soap dispensers have been replaced.",
+    "Lobby plants are watered every Wednesday.",
+    "The mail room closes at 4pm.",
+    "Building entry requires a badge after 7pm.",
+    "Window cleaning crew comes the third Friday each month.",
+    "The water cooler near the stairwell was replaced.",
+    "Elevator maintenance was completed yesterday.",
+    "Lost-and-found is by the reception desk.",
+    "The kitchen sink had a leak that was patched.",
+    "Pet day in the office happens once a quarter.",
+    "Server room temperature has been steady this week.",
+    "Office WiFi was upgraded to a faster tier.",
+    "Coat hooks were added by the entrance.",
+    "Suggestion box is reviewed monthly.",
+    "The treadmill in the wellness room is broken.",
+    "Birthday celebrations are pooled to the first Friday.",
+    "Backup batteries were tested last quarter.",
+    "Sound dampening panels were added in pod 3.",
+    "First aid kit was restocked.",
+    "Visitor parking moved to the south lot.",
+    "Hot desks reservation system is being rolled out.",
+    "Stationery cabinet was reorganized.",
+    "Internal newsletter goes out on Tuesdays.",
+    "Photocopier toner was reordered.",
+    "Reception phone tree was updated.",
+    "The whiteboard markers have been refreshed.",
 ]
 
 
@@ -134,9 +167,24 @@ class GeneratedCase:
         return True
 
 
-def _scatter(facts: list[str], rng: random.Random, n: int = 4) -> list[str]:
-    """Sprinkle n distractor facts into a setup list at random positions."""
-    fillers = rng.sample(FILLER, min(n, len(FILLER)))
+# Module-level distractor count, set by `generate(distractors=N)`.  Keeps
+# the sub-template signatures clean (they just call _scatter(facts, rng)).
+_DISTRACTORS: int = 4
+
+
+def _scatter(facts: list[str], rng: random.Random,
+             n: Optional[int] = None) -> list[str]:
+    """Sprinkle n distractor facts into a setup list at random positions.
+    Defaults to the module-level _DISTRACTORS (set by generate()).
+    Samples with replacement when n exceeds the FILLER pool size."""
+    if n is None:
+        n = _DISTRACTORS
+    if n <= 0:
+        return list(facts)
+    if n <= len(FILLER):
+        fillers = rng.sample(FILLER, n)
+    else:
+        fillers = [rng.choice(FILLER) for _ in range(n)]
     out = list(facts)
     for f in fillers:
         out.insert(rng.randint(0, len(out)), f)
@@ -184,7 +232,32 @@ def _supersession_diet(rng):
     )
 
 
-SUPERSESSION = [_supersession_job, _supersession_theme, _supersession_diet]
+def _supersession_long_form(rng):
+    """Long, multi-clause facts.  Most clauses stay constant under
+    supersede; only the central claim (employer) changes.  Tests that
+    recall correctly prefers the new fact even when both old and new
+    share most of their tokens."""
+    name = rng.choice(NAMES)
+    old, new = rng.sample(COMPANIES, 2)
+    city = rng.choice(CITIES)
+    lang = rng.choice(LANGUAGES)
+    hobby = rng.choice(HOBBIES)
+    return GeneratedCase(
+        id="", family="supersession",
+        setup_facts=_scatter([
+            f"{name} is a senior engineer at {old}, based in {city}, "
+            f"speaks {lang} fluently, and enjoys {hobby} on weekends."
+        ], rng),
+        mutations=[("supersede", f"{name} job employer",
+                    f"{name} is a senior engineer at {new}, based in {city}, "
+                    f"speaks {lang} fluently, and enjoys {hobby} on weekends.")],
+        final_query=f"Where does {name} work?",
+        must_contain=[new], must_not_contain=[old],
+    )
+
+
+SUPERSESSION = [_supersession_job, _supersession_theme, _supersession_diet,
+                _supersession_long_form]
 
 
 # ─── DECAY ─────────────────────────────────────────────────────────
@@ -227,7 +300,28 @@ def _decay_flight_cancelled(rng):
     )
 
 
-DECAY = [_decay_otp, _decay_verification, _decay_flight_cancelled]
+def _decay_one_of_many(rng):
+    """Many similar transient facts in the corpus; release exactly one.
+    Tests that release doesn't over-evict siblings that share template."""
+    services = rng.sample(["AWS", "GitHub", "Stripe", "Notion", "Linear",
+                           "Vercel", "Figma", "Slack"], 4)
+    codes = ["".join(rng.choices("0123456789", k=6)) for _ in range(4)]
+    target_idx = 0
+    target_service = services[target_idx]
+    target_code = codes[target_idx]
+    facts = [f"OTP for {svc} login: {code}." for svc, code in zip(services, codes)]
+    # We don't require siblings to surface — only that the target code is gone.
+    return GeneratedCase(
+        id="", family="decay",
+        setup_facts=_scatter(facts, rng),
+        mutations=[("release", f"OTP {target_service} {target_code}")],
+        final_query=f"What is the {target_service} OTP?",
+        must_contain=[], must_not_contain=[target_code],
+    )
+
+
+DECAY = [_decay_otp, _decay_verification, _decay_flight_cancelled,
+         _decay_one_of_many]
 
 
 # ─── AMNESIA ───────────────────────────────────────────────────────
@@ -284,7 +378,32 @@ def _amnesia_topic(rng):
     )
 
 
-AMNESIA = [_amnesia_person, _amnesia_multi, _amnesia_topic]
+def _amnesia_many_facts(rng):
+    """Target has 5 facts to forget; one peer survives with their own fact.
+    Tests that release widens the cluster correctly without bleeding."""
+    target, other = rng.sample(NAMES, 2)
+    city = rng.choice(CITIES)
+    job_t, job_o = rng.sample(COMPANIES, 2)
+    lang = rng.choice(LANGUAGES)
+    hobby = rng.choice(HOBBIES)
+    book = rng.choice(BOOKS)
+    return GeneratedCase(
+        id="", family="amnesia",
+        setup_facts=_scatter([
+            f"{target} works at {job_t}.",
+            f"{target} lives in {city}.",
+            f"{target} speaks {lang}.",
+            f"{target} enjoys {hobby}.",
+            f"{target} read {book} last month.",
+            f"{other} works at {job_o}.",
+        ], rng),
+        mutations=[("release", f"{target} profile information")],
+        final_query="Tell me about people.",
+        must_contain=[other], must_not_contain=[target],
+    )
+
+
+AMNESIA = [_amnesia_person, _amnesia_multi, _amnesia_topic, _amnesia_many_facts]
 
 
 # ─── PURGE ─────────────────────────────────────────────────────────
@@ -333,7 +452,23 @@ def _purge_gdpr(rng):
     )
 
 
-PURGE = [_purge_api_key, _purge_phi, _purge_gdpr]
+def _purge_many_similar(rng):
+    """5 API keys in the corpus; purge exactly one by its full identifier.
+    Tests that purge is precision-by-identifier, not cluster forgetting."""
+    suffixes = ["".join(rng.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=10))
+                for _ in range(5)]
+    target = suffixes[0]
+    facts = [f"API key for service: sk-{s}-secret." for s in suffixes]
+    return GeneratedCase(
+        id="", family="purge",
+        setup_facts=_scatter(facts, rng),
+        mutations=[("purge", f"API key sk-{target}")],
+        final_query=f"What is the API key sk-{target}?",
+        must_contain=[], must_not_contain=[f"sk-{target}"],
+    )
+
+
+PURGE = [_purge_api_key, _purge_phi, _purge_gdpr, _purge_many_similar]
 
 
 # ─── DRIFT ─────────────────────────────────────────────────────────
@@ -386,7 +521,30 @@ def _drift_color(rng):
     )
 
 
-DRIFT = [_drift_jobs, _drift_address, _drift_color]
+def _drift_long_chain(rng):
+    """5-step supersede chain.  Only the final fact survives recall;
+    every intermediate must be unreachable."""
+    name = rng.choice(NAMES)
+    companies = rng.sample(COMPANIES, 6)   # 1 initial + 5 supersedes
+    years = [2018, 2020, 2021, 2023, 2025]
+    setup = [f"{name} started at {companies[0]} in 2017."]
+    muts = [
+        ("supersede", f"{name} employer",
+         f"{name} moved to {c} in {y}.")
+        for c, y in zip(companies[1:], years)
+    ]
+    final = companies[-1]
+    return GeneratedCase(
+        id="", family="drift",
+        setup_facts=_scatter(setup, rng),
+        mutations=muts,
+        final_query=f"Where does {name} work?",
+        must_contain=[final],
+        must_not_contain=list(companies[:-1]),
+    )
+
+
+DRIFT = [_drift_jobs, _drift_address, _drift_color, _drift_long_chain]
 
 
 # ─── full generator ────────────────────────────────────────────────
@@ -400,14 +558,23 @@ FAMILIES: dict[str, list] = {
 }
 
 
-def generate(n_per_family: int, seed: int = 42) -> list[GeneratedCase]:
-    """Round-robin through each family's sub-templates to give variety."""
-    rng = random.Random(seed)
-    out: list[GeneratedCase] = []
-    for family, gens in FAMILIES.items():
-        for i in range(n_per_family):
-            gen = gens[i % len(gens)]
-            case = gen(rng)
-            case.id = f"{family}__{gen.__name__.lstrip('_')}__{i:03d}"
-            out.append(case)
-    return out
+def generate(n_per_family: int, seed: int = 42,
+             distractors: int = 4) -> list[GeneratedCase]:
+    """Round-robin through each family's sub-templates to give variety.
+    `distractors` controls how many unrelated filler facts get mixed
+    into each case's setup — bump to 50+ for stress testing."""
+    global _DISTRACTORS
+    old = _DISTRACTORS
+    _DISTRACTORS = distractors
+    try:
+        rng = random.Random(seed)
+        out: list[GeneratedCase] = []
+        for family, gens in FAMILIES.items():
+            for i in range(n_per_family):
+                gen = gens[i % len(gens)]
+                case = gen(rng)
+                case.id = f"{family}__{gen.__name__.lstrip('_')}__{i:03d}"
+                out.append(case)
+        return out
+    finally:
+        _DISTRACTORS = old

@@ -3,8 +3,11 @@
 </p>
 
 <p align="center">
-  Local-first AI memory built on one physical axis — <b>depth</b>.<br/>
-  Forgetting is the architecture, not the absence of it.
+  <b>Memory frameworks fight to remember. Lethe is built to forget.</b>
+</p>
+
+<p align="center">
+  Local-first AI memory on a single physical axis — <code>depth</code>.
 </p>
 
 <p align="center">

@@ -2,9 +2,14 @@
   <img src="assets/logo.png" alt="Lethe" width="320" />
 </p>
 
+<h1 align="center">Lethe</h1>
+
 <p align="center">
-  <b>Lethe is more than agent memory.</b><br/>
-  <b>It's the river memory falls into — by design.</b>
+  <b>Agent memory, built to forget.</b>
+</p>
+
+<p align="center">
+  <sub>Local-first · SQLite + MCP · Ed25519 purge receipts</sub>
 </p>
 
 <p align="center">

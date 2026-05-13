@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/slogan.svg" alt="The first AI memory built to forget." width="640" />
+  <b><i>The first AI memory built to forget.</i></b>
 </p>
 
 <p align="center">

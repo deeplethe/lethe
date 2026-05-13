@@ -6,27 +6,28 @@ name: release
 #   git push origin v1.0.0a1
 #
 # Tag version MUST match the `version` field in pyproject.toml.  The
-# workflow builds the wheel + sdist, runs `twine check`, uploads to
-# TestPyPI for staging, then to real PyPI.
+# workflow builds the wheel + sdist, runs `twine check`, then publishes
+# straight to PyPI.
 #
 # Setup (one-time, before the first tagged release):
 #
 #   1. PyPI (https://pypi.org/manage/account/publishing/) —
 #      add a "pending publisher" with:
-#        Owner: deeplethe
-#        Repository: lethe
-#        Workflow filename: release.yml
-#        Environment name: pypi
+#        PyPI Project Name:   pylethe
+#        Owner:               deeplethe
+#        Repository name:     lethe
+#        Workflow filename:   release.yml
+#        Environment name:    pypi
 #
-#   2. TestPyPI (https://test.pypi.org/manage/account/publishing/) —
-#      same fields, environment name: testpypi
-#
-#   3. GitHub repo Settings → Environments → create `pypi` and
-#      `testpypi` environments (no protection rules required, but you
-#      can require manual approval for `pypi` if you want a gate).
+#   2. GitHub repo Settings → Environments → create `pypi`
+#      (recommended: add yourself as a required reviewer so the
+#      publish step waits for your manual approval — cheap safety
+#      gate against accidental releases).
 #
 # Trusted publishing means: no API tokens, no secrets, OIDC handles
-# auth between GitHub and PyPI automatically.
+# auth between GitHub and PyPI automatically.  Add a TestPyPI stage
+# back later if you want a pre-publish dry run (see git history for
+# the two-stage variant).
 
 on:
   push:
@@ -65,29 +66,9 @@ jobs:
           path: dist/
           retention-days: 7
 
-  testpypi:
-    name: Publish to TestPyPI
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: testpypi
-      url: https://test.pypi.org/project/pylethe
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
-          skip-existing: true
-
   pypi:
     name: Publish to PyPI
-    needs: testpypi
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: pypi

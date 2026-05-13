@@ -2,10 +2,12 @@
   <img src="assets/logo.png" alt="Lethe" width="320" />
 </p>
 
+<h3 align="center">
+  <i>The first AI memory built to forget.</i>
+</h3>
+
 <p align="center">
-  <b><i>The first AI memory built to forget.</i></b>
-  <br />
-  local-first &nbsp;·&nbsp; <b>97.4% R@5</b> on LongMemEval raw &nbsp;·&nbsp; zero API calls
+  local-first &nbsp;·&nbsp; 97.4% R@5 on LongMemEval raw &nbsp;·&nbsp; zero API calls
 </p>
 
 <p align="center">

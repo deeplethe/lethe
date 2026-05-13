@@ -226,18 +226,18 @@ $ pytest tests
 
 Roadmap (next):
 
-- **Human-curated adversarial ForgetEval** — substring traps, prefix
+- **Human-curated adversarial ForgetEval.**  Substring traps, prefix
   collisions, paraphrase chains.  Template-generated 1000-case is the
   floor, not the ceiling.
-- **Receipt-verification benchmark family** — does the system produce
-  auditable proof of deletion?  A new ForgetEval axis no other framework
-  even attempts.
-- **Adaptive consolidation policies** — `consolidate()` currently uses
-  one fixed decay law; we want per-domain policies (financial records
-  decay slower than chat memory).
-- **Production-density distractor corpora** — replace synthetic
-  office-trivia fillers with real long-form text (Wikipedia, code,
-  emails) for a tougher recall environment.
+- **Receipt-verification benchmark family.**  Does the system produce
+  auditable proof of deletion?  A new ForgetEval axis no other
+  framework even attempts.
+- **Adaptive consolidation policies.**  `consolidate()` uses one fixed
+  decay law; we want per-domain policies — financial records decay
+  slower than chat memory.
+- **Production-density distractor corpora.**  Synthetic office-trivia
+  fillers replaced with real long-form text (Wikipedia, code, emails)
+  for a tougher recall environment.
 
 <br />
 

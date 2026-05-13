@@ -292,6 +292,119 @@ ADV_PREFIX_COLLISION = [
         must_contain=["Plan B"],
         must_not_contain=["dana@startup.com purchased Plan A"],
     ),
+    # ─── v0.4 expansion: 8 more prefix-collision cases ──────────────
+    GeneratedCase(
+        id="adv_prefix_collision_09",
+        family="purge",
+        # intent: usernames sharing prefix "admin" vs "admin1"
+        setup_facts=[
+            "User admin has full root access.",
+            "User admin1 has read-only dashboard access.",
+            "Audit log was archived last week.",
+        ],
+        mutations=[("purge", "user admin root access")],
+        final_query="What access does admin1 have?",
+        must_contain=["read-only"],
+        must_not_contain=["admin has full root"],
+    ),
+    GeneratedCase(
+        id="adv_prefix_collision_10",
+        family="purge",
+        # intent: project_2024 vs project_2024_v2
+        setup_facts=[
+            "project_2024 budget is $500K.",
+            "project_2024_v2 budget is $750K.",
+            "Coffee inventory was restocked.",
+        ],
+        mutations=[("purge", "project_2024 budget record")],
+        final_query="What is the project_2024_v2 budget?",
+        must_contain=["$750K"],
+        must_not_contain=["project_2024 budget is $500K"],
+    ),
+    GeneratedCase(
+        id="adv_prefix_collision_11",
+        family="purge",
+        # intent: shared department prefix
+        setup_facts=[
+            "Department engineering reports to CTO.",
+            "Department engineering-platform reports to VP Platform.",
+            "All-hands meeting moved to Wednesday.",
+        ],
+        mutations=[("purge", "department engineering reporting line")],
+        final_query="Who does engineering-platform report to?",
+        must_contain=["VP Platform"],
+        must_not_contain=["engineering reports to CTO"],
+    ),
+    GeneratedCase(
+        id="adv_prefix_collision_12",
+        family="purge",
+        # intent: ticket numbers sharing prefix
+        setup_facts=[
+            "Ticket TKT-100 was resolved in March.",
+            "Ticket TKT-1000 is still open with priority high.",
+            "Quarterly metrics will be presented Thursday.",
+        ],
+        mutations=[("purge", "ticket TKT-100 record")],
+        final_query="What is the status of TKT-1000?",
+        must_contain=["still open"],
+        must_not_contain=["TKT-100 was resolved"],
+    ),
+    GeneratedCase(
+        id="adv_prefix_collision_13",
+        family="purge",
+        # intent: file paths sharing prefix
+        setup_facts=[
+            "Config file /etc/app/conf is currently in use.",
+            "Config file /etc/app/conf.bak holds the previous version.",
+            "Server uptime is 47 days.",
+        ],
+        mutations=[("purge", "/etc/app/conf active configuration")],
+        final_query="What does the .bak file contain?",
+        must_contain=["previous version"],
+        must_not_contain=["/etc/app/conf is currently"],
+    ),
+    GeneratedCase(
+        id="adv_prefix_collision_14",
+        family="purge",
+        # intent: domain prefix collision
+        setup_facts=[
+            "Domain mycompany.com expires in 2027.",
+            "Domain mycompany.com.br is owned by a different entity.",
+            "DNS provider was changed last month.",
+        ],
+        mutations=[("purge", "mycompany.com domain registration")],
+        final_query="Who owns mycompany.com.br?",
+        must_contain=["different entity"],
+        must_not_contain=["mycompany.com expires"],
+    ),
+    GeneratedCase(
+        id="adv_prefix_collision_15",
+        family="purge",
+        # intent: hash prefix collision
+        setup_facts=[
+            "Commit hash abc1234 reverted the payment bug.",
+            "Commit hash abc12345 fixed the email template typo.",
+            "CI pipeline was migrated to a new runner.",
+        ],
+        mutations=[("purge", "commit abc1234 record")],
+        final_query="What did commit abc12345 do?",
+        must_contain=["email template typo"],
+        must_not_contain=["abc1234 reverted the payment"],
+    ),
+    GeneratedCase(
+        id="adv_prefix_collision_16",
+        family="purge",
+        # intent: phone country-code prefix collision
+        setup_facts=[
+            "Phone +1-555-0100 is the main office line.",
+            "Phone +1-555-01000 is the fax machine extension.",
+            "Building cleaning is on Fridays.",
+        ],
+        mutations=[("purge", "phone +1-555-0100 office line")],
+        final_query="What is the fax extension?",
+        must_contain=["+1-555-01000"],
+        must_not_contain=["+1-555-0100 is the main"],
+    ),
 ]
 
 
@@ -775,6 +888,119 @@ ADV_SHARED_ATTR = [
         must_contain=["Sam"],
         must_not_contain=["Riya works on the Atlas"],
     ),
+    # ─── v0.4 expansion: 8 more shared-attribute cases ───────────────
+    GeneratedCase(
+        id="adv_shared_attribute_09",
+        family="amnesia",
+        # intent: two employees same dept; forget one
+        setup_facts=[
+            "Engineer Uma works in the platform team and ships Go services.",
+            "Engineer Victor works in the platform team and writes Rust services.",
+            "Engineer Wendy works in the data team.",
+        ],
+        mutations=[("release", "everything about Uma")],
+        final_query="Who is in the platform team?",
+        must_contain=["Victor"],
+        must_not_contain=["Uma works in the platform"],
+    ),
+    GeneratedCase(
+        id="adv_shared_attribute_10",
+        family="amnesia",
+        # intent: two devices same model; forget one user's
+        setup_facts=[
+            "Xavier owns a MacBook Pro 16 M3 for video editing.",
+            "Yara owns a MacBook Pro 16 M3 for music production.",
+            "Zoe owns a desktop PC for gaming.",
+        ],
+        mutations=[("release", "everything about Xavier's hardware")],
+        final_query="Who owns a MacBook Pro 16?",
+        must_contain=["Yara"],
+        must_not_contain=["Xavier owns a MacBook"],
+    ),
+    GeneratedCase(
+        id="adv_shared_attribute_11",
+        family="amnesia",
+        # intent: two members same allergy; forget one
+        setup_facts=[
+            "Aiden has a severe shellfish allergy and carries EpiPen.",
+            "Bella has a severe shellfish allergy noted in the chart.",
+            "Caleb has no known allergies.",
+        ],
+        mutations=[("release", "everything about Aiden the patient")],
+        final_query="Who else has a shellfish allergy?",
+        must_contain=["Bella"],
+        must_not_contain=["Aiden has a severe shellfish"],
+    ),
+    GeneratedCase(
+        id="adv_shared_attribute_12",
+        family="amnesia",
+        # intent: two collaborators on same paper; forget one
+        setup_facts=[
+            "Diana co-authored the 2025 latency paper at SIGMOD.",
+            "Ethan co-authored the 2025 latency paper at SIGMOD.",
+            "Felix co-authored a different paper at VLDB.",
+        ],
+        mutations=[("release", "everything about Diana's research")],
+        final_query="Who else worked on the 2025 SIGMOD latency paper?",
+        must_contain=["Ethan"],
+        must_not_contain=["Diana co-authored the 2025"],
+    ),
+    GeneratedCase(
+        id="adv_shared_attribute_13",
+        family="amnesia",
+        # intent: two subscribers share coupon code (different from earlier)
+        setup_facts=[
+            "Subscriber gina@x.com applied coupon AUTUMN15 at checkout.",
+            "Subscriber hugo@y.com applied coupon AUTUMN15 at checkout.",
+            "Subscriber iris@z.com purchased a separate plan.",
+        ],
+        mutations=[("release", "everything about gina@x.com")],
+        final_query="Who else applied AUTUMN15?",
+        must_contain=["hugo@y.com"],
+        must_not_contain=["gina@x.com applied coupon"],
+    ),
+    GeneratedCase(
+        id="adv_shared_attribute_14",
+        family="amnesia",
+        # intent: two streets share neighborhood; forget one resident
+        setup_facts=[
+            "Resident Jin lives on Oak Street in the Mission district.",
+            "Resident Kai lives on Pine Street in the Mission district.",
+            "Resident Lily lives in the Sunset district entirely.",
+        ],
+        mutations=[("release", "everything about resident Jin")],
+        final_query="Who else lives in the Mission district?",
+        must_contain=["Kai"],
+        must_not_contain=["Jin lives on Oak Street"],
+    ),
+    GeneratedCase(
+        id="adv_shared_attribute_15",
+        family="amnesia",
+        # intent: two students same advisor; forget one
+        setup_facts=[
+            "Student Maya is advised by Professor Chen in the NLP group.",
+            "Student Noah is advised by Professor Chen in the NLP group.",
+            "Student Owen has a different advisor in the systems group.",
+        ],
+        mutations=[("release", "everything about student Maya")],
+        final_query="Who else is advised by Professor Chen?",
+        must_contain=["Noah"],
+        must_not_contain=["Maya is advised by Professor Chen"],
+    ),
+    GeneratedCase(
+        id="adv_shared_attribute_16",
+        family="amnesia",
+        # intent: two athletes same sport + team; forget one
+        setup_facts=[
+            "Athlete Paula plays striker for FC Lisbon.",
+            "Athlete Quentin plays striker for FC Lisbon.",
+            "Athlete Ruth plays goalkeeper for Sporting Madrid.",
+        ],
+        mutations=[("release", "everything about athlete Paula")],
+        final_query="Who else plays striker for FC Lisbon?",
+        must_contain=["Quentin"],
+        must_not_contain=["Paula plays striker"],
+    ),
 ]
 
 
@@ -1009,6 +1235,125 @@ ADV_IDENTIFIER_OBFUSCATION = [
         must_contain=[],
         must_not_contain=["@deeplethe-engineer is on", "deeplethe-engineer."],
     ),
+    # ─── v0.4 expansion: 8 more identifier-obfuscation cases ─────────
+    GeneratedCase(
+        id="adv_identifier_obfuscation_09",
+        family="purge",
+        # intent: IP address with/without zero padding
+        setup_facts=[
+            "Server IP 192.168.001.005 hosts the staging environment.",
+            "Same server short form 192.168.1.5 (no padding) was logged.",
+            "Office WiFi password rotates monthly.",
+        ],
+        mutations=[("purge", "server 192.168.1.5 record")],
+        final_query="What does 192.168.1.5 host?",
+        must_contain=[],
+        must_not_contain=["192.168.001.005 hosts", "192.168.1.5 (no padding)"],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_10",
+        family="purge",
+        # intent: URL with/without trailing slash + with/without https
+        setup_facts=[
+            "Webhook endpoint https://api.acme.io/v2/events fires on push.",
+            "Same endpoint http-form api.acme.io/v2/events/ (trailing slash) is in legacy docs.",
+            "Slack channel was renamed last week.",
+        ],
+        mutations=[("purge", "api.acme.io/v2/events webhook")],
+        final_query="Where does the webhook fire?",
+        must_contain=[],
+        must_not_contain=["https://api.acme.io/v2/events fires",
+                          "api.acme.io/v2/events/ (trailing slash)"],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_11",
+        family="purge",
+        # intent: same name with Mr. / Dr. / Prof. prefix
+        setup_facts=[
+            "Mr. Alan Turing logged into the lab system.",
+            "Dr. Alan Turing accessed the same project repository.",
+            "Office plants were watered this morning.",
+        ],
+        mutations=[("purge", "Alan Turing user account")],
+        final_query="Does Alan Turing have any sessions on file?",
+        must_contain=[],
+        must_not_contain=["Mr. Alan Turing logged", "Dr. Alan Turing accessed"],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_12",
+        family="purge",
+        # intent: email with + tag variations
+        setup_facts=[
+            "Customer ada@example.com signed up in January.",
+            "Same customer email-with-tag: ada+promo@example.com used a coupon.",
+            "Print queue was migrated to AirPrint.",
+        ],
+        mutations=[("purge", "ada@example.com customer")],
+        final_query="Does ada+promo@example.com still have coupon history?",
+        must_contain=[],
+        must_not_contain=["ada@example.com signed up",
+                          "ada+promo@example.com used a coupon"],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_13",
+        family="purge",
+        # intent: nick name vs full name
+        setup_facts=[
+            "Robert Smith was hired on 2023-01-15.",
+            "Same employee, nickname Bob Smith, was promoted in 2024.",
+            "Annual review window opens next month.",
+        ],
+        mutations=[("purge", "Robert Smith / Bob Smith employee record")],
+        final_query="Show me Bob Smith's promotion record.",
+        must_contain=[],
+        must_not_contain=["Robert Smith was hired",
+                          "Bob Smith, was promoted"],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_14",
+        family="purge",
+        # intent: same project ID with/without prefix abbreviation
+        setup_facts=[
+            "Project ID PRJ-ATLAS-2024 has 5 milestones.",
+            "Same project shortcut form ATLAS-2024 (no PRJ prefix) is in slides.",
+            "Office snacks were restocked.",
+        ],
+        mutations=[("purge", "project ATLAS-2024 PRJ-ATLAS-2024 record")],
+        final_query="How many milestones in ATLAS-2024?",
+        must_contain=[],
+        must_not_contain=["PRJ-ATLAS-2024 has 5",
+                          "ATLAS-2024 (no PRJ prefix)"],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_15",
+        family="purge",
+        # intent: date format variations YYYY-MM-DD vs MM/DD/YYYY
+        setup_facts=[
+            "Event scheduled for 2025-12-25 is the company gala.",
+            "Same event in US-format: 12/25/2025 will be at the convention center.",
+            "Holiday schedule was published.",
+        ],
+        mutations=[("purge", "event 2025-12-25 gala")],
+        final_query="Where is the 12/25/2025 event held?",
+        must_contain=[],
+        must_not_contain=["2025-12-25 is the company gala",
+                          "12/25/2025 will be at"],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_16",
+        family="purge",
+        # intent: account ID with currency suffix
+        setup_facts=[
+            "Account 1234-USD holds the dollar balance.",
+            "Same account 1234 (without currency suffix) appears in the ledger.",
+            "Audit was completed last quarter.",
+        ],
+        mutations=[("purge", "account 1234 / 1234-USD record")],
+        final_query="What is the balance on account 1234?",
+        must_contain=[],
+        must_not_contain=["1234-USD holds the dollar",
+                          "1234 (without currency suffix)"],
+    ),
 ]
 
 
@@ -1129,6 +1474,125 @@ ADV_CROSS_LINGUAL_IDENTIFIER = [
         final_query="Show me Grossmann's recent activity.",
         must_contain=[],
         must_not_contain=["Großmann GmbH delivered", "Grossmann GmbH (without"],
+    ),
+    # ─── v0.4 expansion: 8 more cross-lingual cases ──────────────────
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_09",
+        family="purge",
+        # intent: Hindi devanagari vs Latin transliteration
+        setup_facts=[
+            "Customer राज शर्मा placed an order.",
+            "Same customer as Raj Sharma (transliterated) has a refund pending.",
+            "Holiday calendar was updated.",
+        ],
+        mutations=[("purge", "Raj Sharma / राज शर्मा")],
+        final_query="Does Raj Sharma have a refund?",
+        must_contain=[],
+        must_not_contain=["राज शर्मा placed", "Raj Sharma (transliterated)"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_10",
+        family="purge",
+        # intent: Thai script vs romanization
+        setup_facts=[
+            "Vendor สมชาย ใจดี delivered the parts.",
+            "Same vendor Somchai Jaidee (romanized) issued an invoice.",
+            "Warehouse layout was reorganized.",
+        ],
+        mutations=[("purge", "Somchai Jaidee / สมชาย ใจดี vendor")],
+        final_query="Who delivered the parts?",
+        must_contain=[],
+        must_not_contain=["สมชาย ใจดี delivered",
+                          "Somchai Jaidee (romanized)"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_11",
+        family="purge",
+        # intent: Greek vs Latin transliteration
+        setup_facts=[
+            "Customer Νίκος Παπαδόπουλος is on the renewal list.",
+            "Same customer Nikos Papadopoulos (Latin) paid by card.",
+            "DNS migration finished overnight.",
+        ],
+        mutations=[("purge", "Nikos Papadopoulos / Νίκος Παπαδόπουλος")],
+        final_query="How did Nikos Papadopoulos pay?",
+        must_contain=[],
+        must_not_contain=["Νίκος Παπαδόπουλος is on",
+                          "Nikos Papadopoulos (Latin)"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_12",
+        family="purge",
+        # intent: Hebrew vs Latin transliteration
+        setup_facts=[
+            "Patient דוד כהן has an upcoming appointment.",
+            "Same patient David Cohen (transliterated) is on medication.",
+            "Office printer toner was replaced.",
+        ],
+        mutations=[("purge", "David Cohen / דוד כהן patient")],
+        final_query="What medication is David Cohen taking?",
+        must_contain=[],
+        must_not_contain=["דוד כהן has an upcoming",
+                          "David Cohen (transliterated)"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_13",
+        family="purge",
+        # intent: city in Chinese vs English
+        setup_facts=[
+            "Branch office 北京 reports to corporate quarterly.",
+            "Same branch office Beijing (English) hosts 120 employees.",
+            "Travel policy was revised in October.",
+        ],
+        mutations=[("purge", "Beijing / 北京 branch office")],
+        final_query="How many employees in the Beijing branch?",
+        must_contain=[],
+        must_not_contain=["北京 reports to", "Beijing (English) hosts"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_14",
+        family="purge",
+        # intent: Vietnamese diacritics vs without
+        setup_facts=[
+            "Engineer Nguyễn Văn Hùng filed a security report.",
+            "Same engineer Nguyen Van Hung (no diacritics) was promoted last cycle.",
+            "Quarterly OKR review is next Monday.",
+        ],
+        mutations=[("purge", "Nguyen Van Hung / Nguyễn Văn Hùng record")],
+        final_query="Was Nguyen Van Hung promoted?",
+        must_contain=[],
+        must_not_contain=["Nguyễn Văn Hùng filed",
+                          "Nguyen Van Hung (no diacritics) was"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_15",
+        family="purge",
+        # intent: French name with vs without accents
+        setup_facts=[
+            "Client François Müller paid the September invoice.",
+            "Same client Francois Muller (no accents) requested a refund.",
+            "Conference room schedule was updated.",
+        ],
+        mutations=[("purge", "Francois Muller / François Müller client")],
+        final_query="Did Francois Muller request a refund?",
+        must_contain=[],
+        must_not_contain=["François Müller paid",
+                          "Francois Muller (no accents) requested"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_16",
+        family="purge",
+        # intent: emoji-containing handle vs plain ascii
+        setup_facts=[
+            "Reviewer @dev🚀 left feedback on PR #42.",
+            "Same reviewer plain form: @dev (no emoji) approved PR #45.",
+            "CI runner pool was scaled up.",
+        ],
+        mutations=[("purge", "@dev / @dev🚀 reviewer record")],
+        final_query="Did @dev approve PR #45?",
+        must_contain=[],
+        must_not_contain=["@dev🚀 left feedback",
+                          "@dev (no emoji) approved"],
     ),
 ]
 

@@ -8,9 +8,10 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0--alpha-blue" alt="version" />
-  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="python" />
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="license" />
+  <img src="https://img.shields.io/badge/tests-14%2F14-success?style=flat-square" alt="tests" />
+  <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="python" />
+  <img src="https://img.shields.io/badge/MCP-ready-7C3AED?style=flat-square" alt="MCP" />
+  <img src="https://img.shields.io/badge/license-MIT-007EC6?style=flat-square" alt="license" />
 </p>
 
 ---

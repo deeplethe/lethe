@@ -167,8 +167,10 @@ class Mem0Adapter:
                 "provider": "huggingface",
                 "config": {"model": self.embedder_model},
             },
-            # LLM left as Mem0's default; we never call .add(infer=True) so
-            # no API key is required for our usage pattern.
+            # LLM left as Mem0's default.  We never call .add(infer=True) so
+            # the LLM is never actually used — but Mem0 v2 still instantiates
+            # the OpenAI client at construct time and fails without a key.
+            # See __init__ for the os.environ.setdefault('OPENAI_API_KEY',...) shim.
         }
 
     def reset(self) -> None:

@@ -534,25 +534,36 @@ class Lethe:
             PurgeReceipt, event_hash, merkle_root,
             public_key_from_private, sign, text_hash,
         )
-        ids = self._coerce_ids(target)
-        # Snapshot the texts BEFORE delete, so the receipt records what was
-        # actually erased (the row will be gone afterward).
-        rows = self.conn.execute(
-            f"SELECT rowid, text FROM memory "
-            f"WHERE rowid IN ({','.join('?' * len(ids))})",
-            ids,
-        ).fetchall()
+        requested = self._coerce_ids(target)
+        # Snapshot the texts BEFORE delete, AND filter to rows that actually
+        # exist.  The receipt must reflect what was truly purged, not what
+        # the caller asked for — passing a non-existent id should not show
+        # up as a purged record in the audit trail.
+        if requested:
+            rows = self.conn.execute(
+                f"SELECT rowid, text FROM memory "
+                f"WHERE rowid IN ({','.join('?' * len(requested))})",
+                requested,
+            ).fetchall()
+        else:
+            rows = []
+        existing_ids = [rid for rid, _ in rows]
         text_hashes_by_id = {rid: text_hash(text) for rid, text in rows}
-        n = self._purge(target)
-        # Collect the purge events just produced (one per id).
-        purge_evs = self.conn.execute(
-            f"""SELECT id FROM event
-                WHERE kind='purge'
-                  AND memory_id IN ({','.join('?' * len(ids))})
-                ORDER BY id DESC LIMIT ?""",
-            ids + [len(ids)],
-        ).fetchall()
-        purge_event_ids = sorted(r[0] for r in purge_evs)
+        # Only purge what actually exists, so the event log doesn't get
+        # spurious "purge" events for nonexistent ids.
+        self._purge(existing_ids)
+        # Collect the purge events just produced (one per id we just purged).
+        if existing_ids:
+            purge_evs = self.conn.execute(
+                f"""SELECT id FROM event
+                    WHERE kind='purge'
+                      AND memory_id IN ({','.join('?' * len(existing_ids))})
+                    ORDER BY id DESC LIMIT ?""",
+                existing_ids + [len(existing_ids)],
+            ).fetchall()
+            purge_event_ids = sorted(r[0] for r in purge_evs)
+        else:
+            purge_event_ids = []
         # Snapshot the entire event log and commit to its Merkle root.
         all_events = self.conn.execute(
             "SELECT id, memory_id, kind, depth_before, depth_after, "
@@ -563,8 +574,8 @@ class Lethe:
         pub = public_key_from_private(self.signing_key)
         receipt = PurgeReceipt(
             version="1",
-            purged_ids=list(ids),
-            purged_text_hashes=[text_hashes_by_id.get(rid, "") for rid in ids],
+            purged_ids=existing_ids,
+            purged_text_hashes=[text_hashes_by_id[rid] for rid in existing_ids],
             purge_event_ids=purge_event_ids,
             last_event_id=last_id,
             event_log_merkle_root=root.hex(),

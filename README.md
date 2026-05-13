@@ -128,7 +128,7 @@ Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 
 ## Quickstart
 
 ```bash
-pip install -e .[embed]
+pip install -e ".[embed,crypto,mcp]"
 ```
 
 **Library**:
@@ -165,8 +165,8 @@ lethe verify-receipt receipt.json --db agent.db --db-check
 DB defaults to `~/.lethe/agent.db`.  Pass `--json` on any subcommand for
 machine-readable output.
 
-**MCP** — ten tools exposed over stdio.  Add to Claude Desktop / Claude
-Code / Cursor:
+**MCP** — eleven tools exposed over stdio (every core operation plus
+signed-purge receipts).  Add to Claude Desktop / Claude Code / Cursor:
 
 ```json
 {
@@ -189,9 +189,9 @@ $ pytest tests
 14 passed in 0.65s
 ```
 
-Roadmap: CJK-aware FTS5 tokenizer · 1000+ adversarial ForgetEval
-cases · cross-lingual paraphrase family · receipt-verification
-benchmark family.
+Roadmap: human-curated adversarial ForgetEval cases · adaptive
+consolidation policies · receipt-verification benchmark family · CLI
+auto-completion.
 
 ## License
 

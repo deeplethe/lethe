@@ -22,7 +22,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Optional
 
@@ -63,7 +63,11 @@ class PurgeReceipt:
 
     @classmethod
     def from_dict(cls, d: dict) -> "PurgeReceipt":
-        return cls(**d)
+        # Ignore unknown keys so a v2 receipt (with extra fields) can still
+        # be parsed by an older verifier.  Missing required fields still
+        # raise — that is intentional.
+        known = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in d.items() if k in known})
 
 
 # ─── Merkle ────────────────────────────────────────────────────────

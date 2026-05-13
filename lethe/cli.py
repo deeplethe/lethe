@@ -10,7 +10,7 @@ more.
   lethe purge   ID [ID...]
   lethe supersede OLD_ID --new TEXT
   lethe pin     ID  /  lethe unpin ID
-  lethe consolidate [--half-life SECONDS]
+  lethe consolidate [--tau SECONDS]
   lethe blame   QUERY [-k N]
   lethe log     [--kind KIND] [--limit N] [--since ISO|UNIX]
 

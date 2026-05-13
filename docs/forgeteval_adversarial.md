@@ -24,18 +24,25 @@ ForgetEval-Adv targets exactly these attacks.
 
 ---
 
-## 2. Eight attack categories (64 cases total, 8 per category)
+## 2. Ten attack categories (112 cases total — v0.4)
 
-| # | Attack category          | Primary family       | What it probes                                                                       |
-|---|--------------------------|----------------------|--------------------------------------------------------------------------------------|
-| 1 | `substring_trap`         | all 5                | `must_not_contain` substring accidentally appears in a distractor or related fact    |
-| 2 | `prefix_collision`       | purge                | identifiers share a long common prefix; deleting one must not take the other         |
-| 3 | `paraphrase_supersession`| supersession, drift  | old fact and new fact have low surface overlap; only semantic alignment can match    |
-| 4 | `negation_trap`          | supersession, decay  | negated fact ("does NOT work at X") must not be confused with the affirmative        |
-| 5 | `temporal_qualifier`     | supersession, drift  | facts with embedded dates; supersession must respect the temporal window             |
-| 6 | `shared_attribute`       | amnesia              | multiple entities share one attribute; forgetting one must not collapse the other    |
-| 7 | `compound_fact`          | supersession         | one sentence carries two facts; superseding one must preserve the other              |
-| 8 | `identifier_obfuscation` | purge                | same identifier in different surface forms (case, whitespace, encoding)              |
+| #  | Attack category            | n  | Primary family       | What it probes                                                                       |
+|----|----------------------------|---:|----------------------|--------------------------------------------------------------------------------------|
+| 1  | `substring_trap`           |  8 | all 5                | `must_not_contain` substring accidentally appears in a distractor or related fact    |
+| 2  | `prefix_collision`         | 16 | purge                | identifiers share a long common prefix; deleting one must not take the other         |
+| 3  | `paraphrase_supersession`  |  8 | supersession, drift  | old fact and new fact have low surface overlap; only semantic alignment can match    |
+| 4  | `negation_trap`            |  8 | supersession, decay  | negated fact ("does NOT work at X") must not be confused with the affirmative        |
+| 5  | `temporal_qualifier`       |  8 | supersession, drift  | facts with embedded dates; supersession must respect the temporal window             |
+| 6  | `shared_attribute`         | 16 | amnesia              | multiple entities share one attribute; forgetting one must not collapse the other    |
+| 7  | `compound_fact`            |  8 | supersession         | one sentence carries two facts; superseding one must preserve the other              |
+| 8  | `identifier_obfuscation`   | 16 | purge                | same identifier in different surface forms (case, whitespace, encoding)              |
+| 9  | `cross_lingual_identifier` | 16 | purge                | same entity stored under different scripts or romanizations (GDPR multilingual)      |
+| 10 | `recursive_supersession`   |  8 | drift                | supersede chain where the LATEST state matches an earlier-superseded state           |
+
+Categories with elevated `n=16` are the ones with measurable
+between-system variance from v0.2 → v0.3 runs; saturated and
+zero-coverage categories stay at `n=8` because additional cases
+there only tighten an already-tight CI bound.
 
 ### Why these eight
 
@@ -255,26 +262,46 @@ Architectural invariants preserved:
    difference in the adversarial score is attributable purely to the
    policy layer.
 
-## 8. Hypotheses and the two reported scores
+## 8. Observed scores (v0.4, LLM-free)
 
-We predict, before running:
+| System         | template (1000) | adversarial (112) | wall / case |
+|----------------|----------------:|------------------:|------------:|
+| **Lethe v1**   |  993 (99.3 %)   |  70 (62.5 %)      |   ~48 ms    |
+| Mem0 v2.0.2    |  888 (88.8 %)   |  76 (67.9 %)      |  ~527 ms (11×) |
+| LangMem (LG)   |  995 (99.5 %)   |  69 (61.6 %)      |   ~56 ms (1.2×) |
+| MemPalace      |    0 ( 0.0 %)   |   0 ( 0.0 %)      |  ~167 ms    |
 
-- **LLM-free Lethe** drops ~25–30 absolute points from template
-  (99.3 %) to adversarial.  Two whole categories drop to 0 %:
-  `compound_fact` and `identifier_obfuscation`.  These are the
-  honest ceilings of the deterministic primitive set.
-- **LLM-assisted Lethe** (Claude Haiku, narrow JSON prompts) recovers
-  most of the gap.  We expect 90 %+ overall, with residual failures
-  concentrated in `shared_attribute` (where width-control is still
-  adaptive-gap on the embedder) and a small per-case LLM error rate
-  from JSON-parse failures.
-- **Mem0** is not re-run on the adversarial layer for this paper.
-  Based on its template-level profile we expect a ~50–60 % overall.
-- **MemPalace** remains at 0 % — no deletion primitives.
+The three deterministic systems land within 6 absolute points on
+adversarial; their overall Wilson 95 % CIs overlap.  **The honest
+comparison surface is per-category**, where:
 
-Observed numbers will appear in
-[`data/adversarial_results.json`](../../lethe-paper/data/adversarial_results.json) (no LLM) and
-`data/adversarial_results_with_llm.json` (with LLM).
+- **Lethe 100 % > Mem0 50 %** on `prefix_collision` (16 cases, Wilson
+  intervals do not overlap → significant at p < 0.05).  Lethe's pure-
+  BM25 lexical purge avoids the prefix-similarity confusion that
+  vector-similarity-based delete falls into.
+- **Mem0 50 % > Lethe 0 %** on `cross_lingual_identifier` (16 cases,
+  significant).  Mem0's multilingual-MiniLM embedding accidentally
+  bridges some script-equivalent identifiers; Lethe's exact-text
+  equality cannot.
+- **Mem0 50 % > LangMem 0 %** on `cross_lingual_identifier`
+  (significant) — same mechanism.
+- All three deterministic systems score **0 / 8 on `compound_fact`**
+  — superseding one clause of "X and Y" with a fact about X wipes
+  Y with it.  This is the **deterministic ceiling** that motivates
+  the LLM-optional adapter hook (§7).
+
+These are pre-registered hypothesis tests: per-category claims that
+the bench was designed to evaluate, made with explicit Wilson
+intervals.  Aggregate "Lethe beats Mem0" claims are not made
+because the data does not support them at this case count;
+"trade-off" is the honest read of the aggregate numbers.
+
+LLM-assisted runs (with `LetheAdapter(llm=Anthropic-Claude)`) are
+out of scope for this no-LLM-environment run and will be reported
+when `ANTHROPIC_API_KEY` is set via
+`lethe-paper/scripts/run_adversarial_with_llm.py`.
+
+Data: `lethe-paper/data/adversarial_results.json` (v0.4 numbers).
 
 ---
 

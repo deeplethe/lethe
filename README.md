@@ -107,29 +107,47 @@ production.  Pass / fail is exact substring matching on top-k recall,
 no LLM judge, deterministic.  Full methodology:
 **[docs/forgeteval.md](docs/forgeteval.md)**.
 
-| System        | super | decay | amnesia | purge | drift | Overall                       |
-|---------------|------:|------:|--------:|------:|------:|------------------------------:|
-| **Lethe v1**  | 100%  | 100%  | 98%     | 100%  | 99%   | **99.3%** (993 / 1000)        |
-| Mem0 (2.0.2)  | 100%  | 100%  | 70%     | 75%   | 100%  | 88.8%                         |
-| MemPalace     | 0%    | 0%    | 0%      | 0%    | 0%    | 0% (no forgetting primitives) |
+| System            | super | decay | amnesia | purge | drift | Overall                       |
+|-------------------|------:|------:|--------:|------:|------:|------------------------------:|
+| **Lethe v1**      | 100%  | 100%  | 98%     | 100%  | 99%   | **99.3%** (993 / 1000)        |
+| LangMem (LangGraph) | 100% | 100% | 98%    | 100%  | 99%   | 99.5% (995 / 1000)            |
+| Mem0 (2.0.2)      | 100%  | 100%  | 70%     | 75%   | 100%  | 88.8%                         |
+| MemPalace         | 0%    | 0%    | 0%      | 0%    | 0%    | 0% (no forgetting primitives) |
 
-Mem0 ties on supersession / decay / drift but breaks at the precision
-operations: forgetting one entity without bleeding into near-neighbors
-(amnesia 70%) and deleting by identifier without over-pruning siblings
-(purge 75%).  MemPalace's zeros are not a benchmark failure — they
-are an honest report that the library was built without `supersede`,
-`release`, or `purge`.
+The template suite is near-saturated for vector-store-backed
+systems with adaptive eviction: Lethe and LangGraph's `InMemoryStore`
+both clear 99 %.  Mem0's gap is on amnesia (70 %) and purge (75 %),
+the two families that probe width-control and identifier precision.
+MemPalace returns 0 because the API has no deletion primitives.
 
-In production this maps to real failures.  **70% amnesia** means three
-in ten *"forget this user"* requests leave fragments reachable to
-other queries — a GDPR liability and a stale-context bug.  **75%
-purge** means one in four deletions either miss the target or take a
-neighbor with them — the silent delete-by-similarity failure that
-bricks compliance audits.  **MemPalace's 0%** is the opposite failure:
-a GDPR Article 17 right-to-be-forgotten request becomes a manual
-data-migration project, not a one-line API call.
+For more discriminative comparison we run **ForgetEval-Adv**, a
+112-case hand-crafted layer covering 10 attack categories
+(substring traps, prefix collisions, paraphrase supersession,
+negation, temporal qualifiers, shared attributes, compound facts,
+identifier obfuscation, cross-lingual identifiers, recursive
+supersession).  See [docs/forgeteval_adversarial.md](docs/forgeteval_adversarial.md).
 
-Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 200`
+| System            | adversarial overall | wall / case | trade-off shape                                |
+|-------------------|--------------------:|------------:|------------------------------------------------|
+| **Lethe v1**      |  70 / 112 (62.5 %)  |  ~48 ms     | 100 % prefix_collision, 0 % cross_lingual      |
+| Mem0 v2.0.2       |  76 / 112 (67.9 %)  |  ~527 ms    | 50 % prefix_collision, 50 % cross_lingual      |
+| LangMem (LangGraph)|  69 / 112 (61.6 %) |  ~56 ms     | 94 % prefix_collision, 0 % cross_lingual       |
+| MemPalace         |   0 / 112 ( 0.0 %)  |  ~167 ms    | no deletion primitives                         |
+
+Statistically separated per-category claims at p < 0.05 (non-
+overlapping Wilson 95 % CIs at n=16):
+**Lethe > Mem0 on prefix_collision** (lexical-precise purge wins);
+**Mem0 > Lethe / LangMem on cross_lingual_identifier** (vector-soft
+matching wins).  Overall Wilson CIs of the three deterministic
+systems overlap — the bench reads the trade-off, not a winner.
+
+For attack categories that need semantic understanding the engine
+deliberately doesn't provide (compound_fact across all 3 systems,
+identifier_obfuscation for Lethe / LangMem), the
+`LetheAdapter(llm=...)` hook routes those decisions to an LLM at
+mutation time; the recall hot path stays LLM-free.
+
+Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|langmem|mempalace} --suite {template,adversarial}`
 
 > ForgetEval is downstream of the depth model — and the depth model
 > is downstream of ForgetEval.  A failing `purge_gdpr` case in early

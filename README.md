@@ -38,7 +38,8 @@ The Greeks had a name for the missing operation.
 > **Lethe** (Λήθη) — one of the five rivers of Hades. Souls drank from
 > it before reincarnation, leaving the former life behind.
 
-The Greek word for *truth* — `ἀλήθεια` / **aletheia** — is `a-` (un-) + `lethe`.
+The Greek word for *truth* — `ἀλήθεια` / **aletheia** — is `a-` + `lethe`:
+literally, **un-forgetting**.
 
 > *Memory is what survives Lethe. Truth is what survives memory.*
 

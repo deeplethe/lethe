@@ -340,14 +340,22 @@ ForgetEval v0 is intentionally narrow.  Honest weaknesses:
 
 Roadmap:
 
-- v0.2: 1000+ cases per language, human-curated adversarial layer,
+- **v0.2**: human-curated adversarial layer (substring traps, prefix
+  collisions, multi-step paraphrase); production-density distractor
+  corpora (Wikipedia / email / code, not synthetic office trivia).
+- **v0.3**: multilingual scale-up to 1000+ per non-English language;
   CJK-aware tokenizer for the lexical-purge path.
-- v0.3: cross-lingual paraphrase (English facts, queries in other
-  languages and vice versa).
-- v0.4: temporal-reasoning probes (recall at past timestamps —
+- **v0.4**: cross-lingual paraphrase (English facts, queries in another
+  language and vice versa).
+- **v0.5**: temporal-reasoning probes (recall at past timestamps —
   `lethe.recall(at=T)` and analogs).
-- v0.5: cryptographic-receipt verification family (does the system
-  produce auditable proof of deletion?).
+- **v0.6**: receipt-verification family (does the system produce
+  auditable proof of deletion, like `lethe.purge_with_receipt()`?).
+
+Currently shipped: v0.1 — 1000 English template cases at scale=200,
+five families × four sub-templates, with a Protocol-based adapter
+contract; multilingual smoke at 250 cases for en/zh/ja documented in
+§10.
 
 ---
 

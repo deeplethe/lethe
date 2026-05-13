@@ -189,9 +189,20 @@ $ pytest tests
 14 passed in 0.65s
 ```
 
-Roadmap: human-curated adversarial ForgetEval cases · adaptive
-consolidation policies · receipt-verification benchmark family · CLI
-auto-completion.
+Roadmap (next):
+
+- **Human-curated adversarial ForgetEval** — substring traps, prefix
+  collisions, paraphrase chains.  Template-generated 1000-case is the
+  floor, not the ceiling.
+- **Receipt-verification benchmark family** — does the system produce
+  auditable proof of deletion?  A new ForgetEval axis no other framework
+  even attempts.
+- **Adaptive consolidation policies** — `consolidate()` currently uses
+  one fixed decay law; we want per-domain policies (financial records
+  decay slower than chat memory).
+- **Production-density distractor corpora** — replace synthetic
+  office-trivia fillers with real long-form text (Wikipedia, code,
+  emails) for a tougher recall environment.
 
 ## License
 

@@ -7,6 +7,10 @@
 </p>
 
 <p align="center">
+  <sub>local-first &nbsp;·&nbsp; <b>97.4% R@5</b> on LongMemEval raw &nbsp;·&nbsp; zero API calls</sub>
+</p>
+
+<p align="center">
   <a href="https://pypi.org/project/pylethe/"><img src="https://img.shields.io/pypi/v/pylethe.svg?style=flat-square&color=blue&label=PyPI&logo=pypi&logoColor=white" alt="PyPI" /></a>
   <a href="https://github.com/deeplethe/lethe/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/deeplethe/lethe/ci.yml?style=flat-square&label=tests" alt="tests" /></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="python" />

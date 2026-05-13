@@ -102,6 +102,22 @@ Code lives in `bench/forgeteval/generate.py`
 (or `lang_zh.py` / `lang_ja.py` for non-English).  Update the
 sub-template table in the docs in the same PR.
 
+## Branch model
+
+We use a three-tier flow:
+
+- `main` — release-quality; protected.  Force-pushes and deletions are
+  blocked; all five CI checks (pytest × py3.10–3.13 + ruff) must pass
+  before merge.  Only mergeable from `dev` via PR.
+- `dev` — integration; protected with the same rules as `main`.  All
+  feature work lands here first.
+- `feat/<short-slug>` — feature working branches.  No GitHub
+  protection; rebase, force-push, and squash freely.  Open a PR into
+  `dev` when ready; CI runs against the PR.
+
+Hotfixes can go directly to `main` via PR if the change is
+release-blocking and small.
+
 ## Pull request guidance
 
 - **One logical change per PR.**  Two unrelated improvements should

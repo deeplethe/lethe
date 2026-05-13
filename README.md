@@ -266,6 +266,24 @@ Roadmap (next):
 
 <br />
 
+## Paper
+
+📄 **[ForgetEval: Benchmarking the Forgetting Axis of Agent Memory Systems](paper/paper.pdf)** — Dongxu Yang, *DeepLethe*, 2026.
+
+Full methodology, formal model of the depth axis (Propositions 1–4), 1000-case ForgetEval, 5-seed variance, distractor sweep, component ablations, and LongMemEval-S comparison.  23 pages, MIT.
+
+```bibtex
+@misc{yang2026forgeteval,
+  author       = {Yang, Dongxu},
+  title        = {ForgetEval: Benchmarking the Forgetting Axis of
+                   Agent Memory Systems},
+  year         = {2026},
+  howpublished = {\url{https://github.com/deeplethe/lethe/blob/main/paper/paper.pdf}},
+}
+```
+
+<br />
+
 ## Star History
 
 <a href="https://star-history.com/#deeplethe/lethe&Date">

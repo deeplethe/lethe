@@ -79,7 +79,7 @@ Two axes.  The conventional one: *can a memory system find a fact when
 you need it?*  The one we propose: *can it let go of a fact when you
 ask?*  Most frameworks score on the first; Lethe scores on both.
 
-### LongMemEval-S
+### LongMemEval-S — retrieval (the conventional axis)
 
 500 questions on MemPalace's own evaluation methodology, same
 `all-MiniLM-L6-v2` embedder, zero API calls.

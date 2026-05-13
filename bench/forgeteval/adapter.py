@@ -392,6 +392,291 @@ class Mem0Adapter:
         return self._delete_matching(query)
 
 
+# ─── LangGraph / LangMem adapter ──────────────────────────────────────
+
+class LangGraphAdapter:
+    """LangChain's default agent-memory primitive: LangGraph's
+    ``InMemoryStore`` with vector indexing.  This is the bare BaseStore
+    that the LangMem package layers on top of — we benchmark the
+    underlying store directly so the comparison is between *storage*
+    primitives, not between LLM-driven memory managers.
+
+    LangMem's higher-level manager calls an LLM at every write to
+    extract/dedup/delete memories, which (a) breaks the LLM-free
+    invariant we hold for ForgetEval and (b) makes supersession
+    implicit rather than programmatic.  The InMemoryStore baseline
+    here is what an engineer gets when they use LangChain "out of the
+    box" without wiring an LLM into the write path.
+
+    Primitive coverage:
+
+        inscribe  ↦  store.put((ns,), key=uuid, value={"text": text})
+        recall    ↦  store.search((ns,), query=q, limit=k)
+        supersede ↦  delete(old_key) + put(new uuid, new_text)
+        release   ↦  delete (no soft-delete in BaseStore)
+        purge     ↦  delete top-1 BM25-equivalent
+
+    No external service, no API key, pure CPU.
+    """
+
+    name = "langmem"
+
+    def __init__(self, embedder, vector_dim: int = 384):
+        try:
+            from langgraph.store.memory import InMemoryStore
+        except ImportError as e:  # pragma: no cover
+            raise ImportError("pip install langmem  (pulls langgraph)") from e
+        self._Store = InMemoryStore
+        self.embedder = embedder
+        self.vector_dim = vector_dim
+        self.store = None
+        self.ns = ("forget_eval",)
+
+    def _embed_batch(self, texts: list[str]) -> list[list[float]]:
+        return [list(self.embedder(t)) for t in texts]
+
+    def reset(self) -> None:
+        # InMemoryStore is reset by re-instantiating; embed callback
+        # is invoked by .put/.search internally on the text field.
+        self.store = self._Store(
+            index={"dims": self.vector_dim,
+                   "embed": self._embed_batch,
+                   "fields": ["text"]},
+        )
+
+    def inscribe(self, text: str) -> str:
+        import uuid
+        key = uuid.uuid4().hex
+        self.store.put(self.ns, key, {"text": text})
+        return key
+
+    def recall_texts(self, query: str, k: int = 5) -> list[str]:
+        hits = self.store.search(self.ns, query=query, limit=k)
+        return [h.value.get("text", "") for h in hits]
+
+    def supersede(self, old_query: str, new_text: str) -> None:
+        hits = self.store.search(self.ns, query=old_query, limit=1)
+        if hits:
+            self.store.delete(self.ns, hits[0].key)
+        import uuid
+        self.store.put(self.ns, uuid.uuid4().hex, {"text": new_text})
+
+    def release(self, query: str) -> int:
+        hits = self.store.search(self.ns, query=query, limit=20)
+        if not hits:
+            return 0
+        # Use the same adaptive-gap policy as LetheAdapter for fairness.
+        scores = [h.score or 0.0 for h in hits]
+        thr = LetheAdapter._gap_threshold(scores)
+        evicted = 0
+        for h in hits:
+            if (h.score or 0.0) >= thr:
+                self.store.delete(self.ns, h.key)
+                evicted += 1
+        return evicted
+
+    def purge(self, query: str) -> int:
+        hits = self.store.search(self.ns, query=query, limit=20)
+        if not hits:
+            return 0
+        target_text = hits[0].value.get("text", "")
+        purged = 0
+        for h in hits:
+            if h.value.get("text", "") == target_text:
+                self.store.delete(self.ns, h.key)
+                purged += 1
+        return purged
+
+
+# ─── Cognee adapter (requires LLM API key) ────────────────────────────
+
+class CogneeAdapter:
+    """Cognee v1's ``remember`` / ``recall`` / ``forget`` / ``improve``
+    API.  The v1 release explicitly mirrors a forgetting-aware verb set
+    at the top level — making it the closest API-level analog to
+    Lethe's surrender modes in the ecosystem.
+
+    *Requires:* ``pip install cognee``  and an ``LLM_API_KEY``
+    environment variable (OpenAI by default; local LLM via Ollama
+    extras possible).  ``cognify`` invokes the LLM unconditionally,
+    so this adapter cannot run in a fully offline environment.
+
+    Primitive coverage (per the Cognee v1 quickstart):
+
+        inscribe  ↦  await cognee.remember(text)
+        recall    ↦  await cognee.recall(query)
+        supersede ↦  chain forget(by_query) + remember(new)
+        release   ↦  not exposed (NotImplementedError)
+        purge     ↦  await cognee.forget(by_text=query)
+                    NOTE: per-query forget granularity is undocumented
+                    in v1.0.9; only forget(everything=True) is fully
+                    public.  Adapter falls back to atomic supersede.
+    """
+
+    name = "cognee"
+
+    def __init__(self, dataset: str = "forget_eval"):
+        try:
+            import cognee
+        except ImportError as e:  # pragma: no cover
+            raise ImportError("pip install cognee") from e
+        self._cognee = cognee
+        self.dataset = dataset
+
+    def _run(self, coro):
+        import asyncio
+        return asyncio.get_event_loop().run_until_complete(coro)
+
+    def reset(self) -> None:
+        # Best-effort: forget all then re-prune the dataset.
+        try:
+            self._run(self._cognee.forget(dataset=self.dataset, everything=True))
+        except Exception:
+            pass
+
+    def inscribe(self, text: str) -> str:
+        self._run(self._cognee.remember(text, dataset=self.dataset))
+        return ""  # cognee does not expose stable per-fact ids
+
+    def recall_texts(self, query: str, k: int = 5) -> list[str]:
+        results = self._run(self._cognee.recall(query, dataset=self.dataset))
+        out: list[str] = []
+        for r in (results or [])[:k]:
+            if isinstance(r, dict):
+                out.append(r.get("text") or r.get("content") or str(r))
+            else:
+                out.append(str(r))
+        return out
+
+    def supersede(self, old_query: str, new_text: str) -> None:
+        # cognee's v1 forget by query may or may not be precise; the
+        # conservative path is: forget everything matching old_query,
+        # then remember new_text.
+        try:
+            self._run(self._cognee.forget(old_query, dataset=self.dataset))
+        except Exception:
+            pass
+        self._run(self._cognee.remember(new_text, dataset=self.dataset))
+
+    def release(self, query: str) -> int:
+        raise NotImplementedError(
+            "Cognee v1 has no documented soft-delete / TTL primitive."
+        )
+
+    def purge(self, query: str) -> int:
+        try:
+            n = self._run(self._cognee.forget(query, dataset=self.dataset))
+            return int(n) if isinstance(n, int) else 1
+        except Exception:
+            return 0
+
+
+# ─── A-MEM adapter (requires Ollama or OpenAI) ────────────────────────
+
+class AMemAdapter:
+    """A-MEM (Xu et al., NeurIPS 2025, arXiv 2502.12110): Zettelkasten-
+    style agentic memory.  Each ``add_note`` triggers an LLM call to
+    generate tags / context / inter-note links, so the system cannot
+    run without either an Ollama daemon or an OpenAI API key.
+
+    *Install:* not on PyPI as of May 2026 — clone the repo and pip-install.
+    ::
+
+        git clone https://github.com/agiresearch/A-mem
+        cd A-mem && pip install -e .
+
+    Primitive coverage:
+
+        inscribe  ↦  ms.add_note(text)
+        recall    ↦  ms.search_agentic(query, k=k)
+        supersede ↦  ms.update(memory_id, content=new_text)
+        release   ↦  raises NotImplementedError (no soft-delete)
+        purge     ↦  ms.delete(memory_id)
+    """
+
+    name = "amem"
+
+    def __init__(self, llm_backend: str = "ollama",
+                 embedder_model: str = "all-MiniLM-L6-v2"):
+        try:
+            from agentic_memory.memory_system import AgenticMemorySystem
+        except ImportError as e:  # pragma: no cover
+            raise ImportError(
+                "A-MEM is not on PyPI — clone "
+                "https://github.com/agiresearch/A-mem and `pip install -e .`"
+            ) from e
+        self._System = AgenticMemorySystem
+        self.llm_backend = llm_backend
+        self.embedder_model = embedder_model
+        self.ms = None
+
+    def reset(self) -> None:
+        # Recreate fresh in-process system.  ChromaDB is embedded; the
+        # constructor instantiates the LLM controller, which is where
+        # the Ollama/OpenAI dependency materializes.
+        self.ms = self._System(
+            model_name=self.embedder_model,
+            llm_backend=self.llm_backend,
+        )
+        # ChromaDB collection lives across instances by default; wipe
+        # the namespace explicitly so cases don't leak into each other.
+        try:
+            for mid in list(self.ms.memories.keys()):
+                self.ms.delete(mid)
+        except Exception:
+            pass
+
+    def inscribe(self, text: str) -> str:
+        return self.ms.add_note(text)
+
+    def recall_texts(self, query: str, k: int = 5) -> list[str]:
+        results = self.ms.search_agentic(query, k=k)
+        out: list[str] = []
+        for r in results or []:
+            if isinstance(r, dict):
+                out.append(r.get("content") or r.get("text") or str(r))
+            elif hasattr(r, "content"):
+                out.append(r.content)
+            else:
+                out.append(str(r))
+        return out
+
+    def supersede(self, old_query: str, new_text: str) -> None:
+        hits = self.ms.search_agentic(old_query, k=1)
+        if not hits:
+            self.ms.add_note(new_text)
+            return
+        target = hits[0]
+        mid = target.get("id") if isinstance(target, dict) else getattr(target, "id", None)
+        if mid is None:
+            self.ms.add_note(new_text)
+            return
+        try:
+            self.ms.update(mid, content=new_text)
+        except Exception:
+            self.ms.delete(mid)
+            self.ms.add_note(new_text)
+
+    def release(self, query: str) -> int:
+        raise NotImplementedError(
+            "A-MEM has no documented soft-delete primitive."
+        )
+
+    def purge(self, query: str) -> int:
+        hits = self.ms.search_agentic(query, k=5)
+        purged = 0
+        for h in hits or []:
+            mid = h.get("id") if isinstance(h, dict) else getattr(h, "id", None)
+            if mid is None:
+                continue
+            try:
+                self.ms.delete(mid)
+                purged += 1
+            except Exception:
+                pass
+        return purged
+
+
 # ─── MemPalace adapter ────────────────────────────────────────────────
 
 class MemPalaceAdapter:

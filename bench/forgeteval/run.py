@@ -86,7 +86,8 @@ def report(summary: dict, adapter_name: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--adapter", default="lethe",
-                        choices=["lethe", "mem0", "mempalace"])
+                        choices=["lethe", "mem0", "mempalace",
+                                 "langmem", "cognee", "amem"])
     parser.add_argument("--lang", default="en", choices=["en", "zh", "ja"],
                         help="Case language pool (en/zh/ja). "
                              "Non-English auto-switches the default embedder "
@@ -133,6 +134,20 @@ def main() -> None:
     elif args.adapter == "mempalace":
         from bench.forgeteval.adapter import MemPalaceAdapter
         adapter = MemPalaceAdapter()
+    elif args.adapter == "langmem":
+        print(f"loading embedder: {args.embedder}")
+        from fastembed import TextEmbedding
+        from bench.forgeteval.adapter import LangGraphAdapter
+        model = TextEmbedding(args.embedder)
+        def embedder(text: str) -> list[float]:
+            return list(next(iter(model.embed([text]))))
+        adapter = LangGraphAdapter(embedder=embedder, vector_dim=args.dim)
+    elif args.adapter == "cognee":
+        from bench.forgeteval.adapter import CogneeAdapter
+        adapter = CogneeAdapter()
+    elif args.adapter == "amem":
+        from bench.forgeteval.adapter import AMemAdapter
+        adapter = AMemAdapter()
     else:
         raise ValueError(args.adapter)
 

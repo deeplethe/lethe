@@ -42,6 +42,8 @@ un-forgetting.**
 
 > *Memory is what survives Lethe. Truth is what survives memory.*
 
+<br />
+
 ## The model
 
 In the myth, Lethe is a river — surface, current, bed.  Everything in
@@ -68,6 +70,8 @@ depth     state                          how it got there
 
 No `weight`. No `alive` flag. No `superseded_at` column. One number,
 one axis, one mental model.
+
+<br />
 
 ## Benchmarks
 
@@ -107,6 +111,8 @@ commands: **[docs/forgeteval.md](docs/forgeteval.md)**.
 
 Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 200`
 
+<br />
+
 ## Architecture
 
 - **One physical axis: `depth`.**  Every state — pinned, surfaced,
@@ -125,6 +131,8 @@ Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 
   this proof because none of them keep the log to anchor to.
 - **Time-travel built in.**  `recall(query, at=T)` reconstructs depth
   state at any past timestamp from the event log.
+
+<br />
 
 ## Quickstart
 
@@ -185,6 +193,8 @@ signed-purge receipts).  Add to Claude Desktop / Claude Code / Cursor:
 }
 ```
 
+<br />
+
 ## Status
 
 `v1.0.0-alpha`.  Core implemented and tested:
@@ -208,6 +218,8 @@ Roadmap (next):
 - **Production-density distractor corpora** — replace synthetic
   office-trivia fillers with real long-form text (Wikipedia, code,
   emails) for a tougher recall environment.
+
+<br />
 
 ## License
 

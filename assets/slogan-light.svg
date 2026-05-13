@@ -3,12 +3,11 @@
   <title>Lethe</title>
   <g font-family="'Source Serif 4', 'Source Serif Pro', Georgia, 'Times New Roman', serif"
      font-style="italic"
-     text-anchor="middle"
-     fill="#6e7681">
-    <text x="360" y="45" font-size="26" font-weight="400">
+     text-anchor="middle">
+    <text x="360" y="48" font-size="26" font-weight="400" fill="#24292f">
       Lethe is more than agent memory.
     </text>
-    <text x="360" y="92" font-size="28" font-weight="700" fill="#57606a">
+    <text x="360" y="90" font-size="22" font-weight="700" fill="#1f2328">
       It's the first AI memory built to forget.
     </text>
   </g>

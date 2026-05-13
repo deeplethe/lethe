@@ -216,6 +216,16 @@ signed-purge receipts).  Add to Claude Desktop / Claude Code / Cursor:
 
 <br />
 
+## Recipes
+
+Runnable cookbook in [`recipes/`](recipes/) for the common patterns:
+**OTP TTL**, **GDPR purge with cryptographic receipt**, **belief
+revision via supersession**, **pinning user preferences**, and
+**time-travel debugging**.  Each recipe is a self-contained ~40-line
+script that runs without fastembed — `python recipes/02_gdpr_purge_receipt.py`.
+
+<br />
+
 ## Status
 
 `v1.0.0-alpha`.  Core implemented and tested:

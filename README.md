@@ -4,10 +4,8 @@
 
 <p align="center">
   <b><i>The first AI memory built to forget.</i></b>
-</p>
-
-<p align="center">
-  <sub>local-first &nbsp;·&nbsp; <b>97.4% R@5</b> on LongMemEval raw &nbsp;·&nbsp; zero API calls</sub>
+  <br />
+  local-first &nbsp;·&nbsp; <b>97.4% R@5</b> on LongMemEval raw &nbsp;·&nbsp; zero API calls
 </p>
 
 <p align="center">

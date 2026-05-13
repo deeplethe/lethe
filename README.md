@@ -15,8 +15,6 @@
   <img src="https://img.shields.io/badge/license-MIT-007EC6?style=flat-square" alt="license" />
 </p>
 
----
-
 **Every memory framework right now is racing the same direction.**
 
 Mem0 promises perfect recall. MemPalace promises verbatim retention.

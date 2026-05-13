@@ -84,6 +84,27 @@ alice.smith@acme.io, 12345 vs 123456) MUST NOT be grouped.
 """
 
 
+LLM_PROMPT_RELEASE_MATCH = """\
+You are deciding which memory items should be released (soft-deleted)
+based on a natural-language release request.
+
+RELEASE_REQUEST:  {request}
+
+CANDIDATES (one per line, indexed from 0):
+{candidates}
+
+Return exactly one JSON object listing the candidate indices whose
+content should be released according to the request.  Include a
+candidate if and only if it (a) describes the entity or topic the
+request targets, OR (b) mentions that entity even as part of a
+compound statement.  Do NOT include candidates that only share an
+attribute (e.g. same city, same job) with the target — those are
+sibling facts, not target facts.
+
+  {{"matching_indices": [<int>, ...]}}
+"""
+
+
 def _parse_json_response(s: str) -> dict:
     """Extract the first JSON object from a model response, tolerating
     fenced code blocks or surrounding prose.  Raises ValueError if no
@@ -205,15 +226,42 @@ class LetheAdapter:
         return best_mid if best_gap >= min_gap else s[0] * 0.95
 
     def release(self, query: str) -> int:
-        hits = self.lethe.recall(query, k=20, hybrid=False)
+        # Hybrid recall (vec + BM25 via RRF) for release.  For
+        # identifier-shaped queries the BM25 leg sharpens the
+        # ranking; for natural-language queries the vec leg carries
+        # the semantic load.  RRF weights both — no detection
+        # heuristic needed.
+        hits = self.lethe.recall(query, k=20, hybrid=True)
         if not hits:
             return 0
+
+        if self.llm is not None:
+            matched = self._llm_match_for_release(query, hits)
+            if matched:
+                self.lethe.surrender(matched, mode="release")
+                return len(matched)
+            # empty LLM result → fall through to adaptive-gap below
+
         thr = self._gap_threshold([h.similarity for h in hits])
         ids = [h.memory.id for h in hits if h.similarity >= thr]
         if not ids:
             return 0
         self.lethe.surrender(ids, mode="release")
         return len(ids)
+
+    def _llm_match_for_release(self, query: str, hits: list) -> list[int]:
+        candidates = "\n".join(f"{i}: {h.memory.text}"
+                               for i, h in enumerate(hits))
+        prompt = LLM_PROMPT_RELEASE_MATCH.format(
+            request=query, candidates=candidates,
+        )
+        try:
+            plan = _parse_json_response(self.llm(prompt))
+            picks = plan.get("matching_indices") or []
+            return [hits[i].memory.id for i in picks
+                    if isinstance(i, int) and 0 <= i < len(hits)]
+        except Exception:
+            return []
 
     # ─── purge ──────────────────────────────────────────────────────
 

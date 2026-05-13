@@ -1,0 +1,150 @@
+% Bibliography for ForgetEval paper.
+% Format: BibTeX, pandoc-compatible.
+
+% ─── Memory frameworks compared in §6 ────────────────────────────
+
+@misc{mem0,
+  title        = {{Mem0}: Building Memory Layer for AI Agents},
+  author       = {{Mem0 contributors}},
+  year         = {2024},
+  howpublished = {\url{https://github.com/mem0ai/mem0}},
+  note         = {Open-source memory framework for LLM agents.},
+}
+
+@misc{mempalace,
+  title        = {{MemPalace}: The best-benchmarked open-source AI memory system},
+  author       = {{MemPalace contributors}},
+  year         = {2024},
+  howpublished = {\url{https://github.com/mempalace/mempalace}},
+  note         = {Verbatim-retention memory system, baseline on LongMemEval-S.},
+}
+
+@misc{letta,
+  title        = {{Letta}: Stateful Agents Framework (successor to MemGPT)},
+  author       = {{Letta contributors}},
+  year         = {2024},
+  howpublished = {\url{https://github.com/letta-ai/letta}},
+}
+
+@misc{zep,
+  title        = {{Zep}: Long-term Memory for AI Assistants},
+  author       = {{Zep contributors}},
+  year         = {2024},
+  howpublished = {\url{https://github.com/getzep/zep}},
+}
+
+@misc{hipporag,
+  title        = {{HippoRAG}: Neurobiologically Inspired Long-Term Memory for {LLMs}},
+  author       = {Guti{\'e}rrez, Bernal Jim{\'e}nez and others},
+  year         = {2024},
+  howpublished = {\url{https://arxiv.org/abs/2405.14831}},
+}
+
+@misc{amem,
+  title        = {{A-MEM}: Agentic Memory for {LLM} Agents},
+  author       = {Wang, Yiming and others},
+  year         = {2024},
+  howpublished = {\url{https://arxiv.org/abs/2502.12110}},
+}
+
+@misc{cognee,
+  title        = {{Cognee}: Memory for {AI} Agents in 5 Lines of Code},
+  author       = {{Cognee contributors}},
+  year         = {2024},
+  howpublished = {\url{https://github.com/topoteretes/cognee}},
+}
+
+% ─── Benchmarks referenced in §2 ─────────────────────────────────
+
+@misc{longmemeval,
+  title        = {{LongMemEval}: Benchmarking Chat Assistants on Long-Term Interactive Memory},
+  author       = {Wu, Di and others},
+  year         = {2024},
+  howpublished = {\url{https://arxiv.org/abs/2410.10813}},
+}
+
+@inproceedings{mteb,
+  title        = {{MTEB}: Massive Text Embedding Benchmark},
+  author       = {Muennighoff, Niklas and Tazi, Nouamane and Magne, Lo{\"\i}c and Reimers, Nils},
+  booktitle    = {EACL},
+  year         = {2023},
+}
+
+@inproceedings{beir,
+  title        = {{BEIR}: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models},
+  author       = {Thakur, Nandan and Reimers, Nils and R{\"u}ckl{\'e}, Andreas and Srivastava, Abhishek and Gurevych, Iryna},
+  booktitle    = {NeurIPS Datasets and Benchmarks},
+  year         = {2021},
+}
+
+% ─── Forgetting literature (§2) ──────────────────────────────────
+
+@book{ebbinghaus1885,
+  title     = {{\"U}ber das Ged{\"a}chtnis: Untersuchungen zur experimentellen Psychologie},
+  author    = {Ebbinghaus, Hermann},
+  year      = {1885},
+  publisher = {Duncker \& Humblot},
+}
+
+@article{bjork1972,
+  title   = {Theoretical implications of directed forgetting},
+  author  = {Bjork, Robert A.},
+  journal = {Coding processes in human memory},
+  pages   = {217--235},
+  year    = {1972},
+}
+
+@article{anderson1995,
+  title   = {Remembering can cause forgetting: Retrieval dynamics in long-term memory},
+  author  = {Anderson, Michael C. and Spellman, Barbara A.},
+  journal = {Journal of Experimental Psychology: Learning, Memory, and Cognition},
+  volume  = {21},
+  number  = {5},
+  pages   = {1063--1087},
+  year    = {1995},
+}
+
+@inproceedings{machineunlearning,
+  title     = {Machine Unlearning},
+  author    = {Bourtoule, Lucas and Chandrasekaran, Varun and Choquette-Choo, Christopher A. and Jia, Hengrui and Travers, Adelin and Zhang, Baiwu and Lie, David and Papernot, Nicolas},
+  booktitle = {IEEE Symposium on Security and Privacy},
+  year      = {2021},
+}
+
+% ─── Heidegger / aletheia (motivating philosophical citation) ────
+
+@book{heideggerpa,
+  title     = {Pathmarks},
+  author    = {Heidegger, Martin},
+  year      = {1998},
+  publisher = {Cambridge University Press},
+  note      = {Edited by William McNeill.  Includes ``On the Essence of Truth'',
+                where the unconcealment reading of aletheia is developed.},
+}
+
+% ─── GDPR / compliance ──────────────────────────────────────────
+
+@misc{gdpr,
+  title        = {Regulation (EU) 2016/679 of the European Parliament and of the
+                   Council ({General Data Protection Regulation})},
+  author       = {{European Parliament and Council}},
+  year         = {2016},
+  howpublished = {Official Journal of the European Union, L 119, 1--88},
+  note         = {See in particular Article 17, ``Right to erasure''.},
+}
+
+% ─── Lethe / supporting infrastructure ──────────────────────────
+
+@misc{sqlitevec,
+  title        = {sqlite-vec: A vector search SQLite extension},
+  author       = {Asg, Alex Garcia},
+  year         = {2024},
+  howpublished = {\url{https://github.com/asg017/sqlite-vec}},
+}
+
+@misc{fastembed,
+  title        = {fastembed: Fast, accurate, lightweight embeddings via {ONNX} runtime},
+  author       = {{Qdrant team}},
+  year         = {2024},
+  howpublished = {\url{https://github.com/qdrant/fastembed}},
+}

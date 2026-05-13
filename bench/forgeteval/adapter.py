@@ -48,20 +48,48 @@ EXISTING_MEMORY:  {old_text}
 SUPERSEDE_QUERY:  {query}
 NEW_FACT:         {new_text}
 
-The supersession may be ATOMIC (replace the whole memory with NEW_FACT)
-or PARTIAL (the existing memory carries multiple independent facts and
-only the one matching the query should be replaced).
+**Default is ATOMIC** — replace the whole memory with NEW_FACT.
+Choose ATOMIC when EXISTING_MEMORY's topic matches SUPERSEDE_QUERY
+(even if paraphrased, dated, or recursive).
 
+Choose PARTIAL when EXISTING_MEMORY combines two **distinct-topic**
+facts (different attributes about the same subject, like
+location-vs-employer or marital-status-vs-employer), and
+SUPERSEDE_QUERY targets only one attribute.  In partial mode,
+preserve the unaffected attribute and splice NEW_FACT into the
+addressed one.
+
+Examples
+--------
+
+EXISTING_MEMORY:  User lives in Berlin and works at Stripe as a backend engineer.
+SUPERSEDE_QUERY:  user city of residence
+NEW_FACT:         User relocated to Madrid and continues working remotely.
+→ {{"mode": "partial", "merged_text": "User relocated to Madrid and works at Stripe as a backend engineer."}}
+
+EXISTING_MEMORY:  User is married to Jamie and works at Google.
+SUPERSEDE_QUERY:  user employer Google
+NEW_FACT:         User joined Anthropic as a research engineer.
+→ {{"mode": "partial", "merged_text": "User is married to Jamie and joined Anthropic as a research engineer."}}
+
+EXISTING_MEMORY:  User does NOT work at Anthropic and has never interviewed there.
+SUPERSEDE_QUERY:  user Anthropic employment status
+NEW_FACT:         User actually joined Anthropic last quarter.
+→ {{"mode": "atomic"}}      (both clauses are about Anthropic-employment — atomic supersedes them together)
+
+EXISTING_MEMORY:  User joined Google in 2020.
+SUPERSEDE_QUERY:  user current employer
+NEW_FACT:         User joined Meta in 2022.
+→ {{"mode": "atomic"}}      (single-topic supersession)
+
+Format
+------
 Reply with exactly one JSON object and nothing else:
-
   {{"mode": "atomic"}}
 or
   {{"mode": "partial", "merged_text": "<the merged sentence>"}}
 
-For partial mode, "merged_text" must preserve every fact in
-EXISTING_MEMORY that is NOT targeted by SUPERSEDE_QUERY, and must
-contain NEW_FACT's content.  Do not add facts not present in either
-source.
+Do not add facts not present in either source.
 """
 
 LLM_PROMPT_PURGE_MATCH = """\

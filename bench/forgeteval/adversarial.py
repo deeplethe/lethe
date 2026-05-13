@@ -1012,17 +1012,287 @@ ADV_IDENTIFIER_OBFUSCATION = [
 ]
 
 
+# ─── 9. cross_lingual_identifier (v0.3) ────────────────────────────
+# Family: purge.  Attack: the same logical entity is stored in
+# multiple language scripts or romanizations.  Purge by one form
+# should reach the others (GDPR / multilingual deployments).
+
+ADV_CROSS_LINGUAL_IDENTIFIER = [
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_01",
+        family="purge",
+        # intent: Chinese name + Latin romanization refer to same person.
+        setup_facts=[
+            "Customer 张伟 placed an order in March.",
+            "The same customer in pinyin: Zhang Wei subscribed to Plan A.",
+            "Marketing team rotated coupons last quarter.",
+        ],
+        mutations=[("purge", "customer Zhang Wei aka 张伟")],
+        final_query="What orders does Zhang Wei have?",
+        must_contain=[],
+        must_not_contain=["张伟", "Zhang Wei subscribed"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_02",
+        family="purge",
+        # intent: Japanese name in kanji vs romaji.
+        setup_facts=[
+            "Patient 田中太郎 was prescribed aspirin.",
+            "Same patient romaji form: Tanaka Taro has hypertension.",
+            "Pharmacy was inspected on Tuesday.",
+        ],
+        mutations=[("purge", "patient Tanaka Taro / 田中太郎")],
+        final_query="What medication did Tanaka Taro receive?",
+        must_contain=[],
+        must_not_contain=["田中太郎 was prescribed", "Tanaka Taro has"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_03",
+        family="purge",
+        # intent: Korean hangul vs romanization.
+        setup_facts=[
+            "User 김민지 logged in from Seoul.",
+            "Same user as Kim Minji has 2FA enabled.",
+            "Office cafeteria is closed on Sundays.",
+        ],
+        mutations=[("purge", "Kim Minji 김민지 account")],
+        final_query="Show me Kim Minji's login activity.",
+        must_contain=[],
+        must_not_contain=["김민지 logged", "Kim Minji has"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_04",
+        family="purge",
+        # intent: Russian Cyrillic vs Latin transliteration.
+        setup_facts=[
+            "Customer Иван Петров pays via wire.",
+            "Same customer (Ivan Petrov, transliterated) has Premium tier.",
+            "Quarterly sales meeting is in November.",
+        ],
+        mutations=[("purge", "Ivan Petrov / Иван Петров")],
+        final_query="What tier is Ivan Petrov on?",
+        must_contain=[],
+        must_not_contain=["Иван Петров pays", "Ivan Petrov, transliterated"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_05",
+        family="purge",
+        # intent: Arabic name in Arabic script vs Latin transliteration.
+        setup_facts=[
+            "Patient محمد علي is allergic to penicillin.",
+            "Same patient as Mohammed Ali had surgery last year.",
+            "Lab equipment was upgraded recently.",
+        ],
+        mutations=[("purge", "Mohammed Ali / محمد علي patient record")],
+        final_query="Is Mohammed Ali allergic to anything?",
+        must_contain=[],
+        must_not_contain=["محمد علي is allergic", "Mohammed Ali had surgery"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_06",
+        family="purge",
+        # intent: company in English vs Chinese.
+        setup_facts=[
+            "Vendor 阿里巴巴 shipped 50 units.",
+            "Same vendor as Alibaba sent invoice for $5000.",
+            "Annual conference is in Las Vegas this year.",
+        ],
+        mutations=[("purge", "vendor Alibaba 阿里巴巴")],
+        final_query="What did Alibaba ship?",
+        must_contain=[],
+        must_not_contain=["阿里巴巴 shipped", "Alibaba sent invoice"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_07",
+        family="purge",
+        # intent: Spanish name with accents vs without.
+        setup_facts=[
+            "Customer José García placed order #42.",
+            "Same customer as Jose Garcia (no accents) has Plan B.",
+            "Office supply order was approved.",
+        ],
+        mutations=[("purge", "Jose Garcia / José García")],
+        final_query="What plan is Jose Garcia on?",
+        must_contain=[],
+        must_not_contain=["José García placed", "Jose Garcia (no accents)"],
+    ),
+    GeneratedCase(
+        id="adv_cross_lingual_identifier_08",
+        family="purge",
+        # intent: German Eszett (ß) vs ss.
+        setup_facts=[
+            "Vendor Großmann GmbH delivered components.",
+            "Same vendor as Grossmann GmbH (without ß) sent the invoice.",
+            "Holiday schedule was distributed.",
+        ],
+        mutations=[("purge", "Grossmann / Großmann GmbH")],
+        final_query="Show me Grossmann's recent activity.",
+        must_contain=[],
+        must_not_contain=["Großmann GmbH delivered", "Grossmann GmbH (without"],
+    ),
+]
+
+
+# ─── 10. recursive_supersession (v0.3) ─────────────────────────────
+# Family: drift.  Attack: a supersession chain where the LATEST state
+# matches an earlier-superseded state.  Tests whether the system can
+# correctly identify the current state when "now back to X" returns
+# to an old value.  Common in real preferences: "tried Y, didn't like
+# it, switched back to X."
+
+ADV_RECURSIVE_SUPERSESSION = [
+    GeneratedCase(
+        id="adv_recursive_supersession_01",
+        family="drift",
+        # intent: Chrome → Brave → Chrome.  Final state = Chrome again.
+        setup_facts=[
+            "User has been using Chrome as primary browser since 2020.",
+        ],
+        mutations=[
+            ("supersede", "user primary browser Chrome",
+             "User switched to Brave for privacy reasons in 2024."),
+            ("supersede", "user primary browser Brave",
+             "User switched back to Chrome in 2025 after Brave broke an extension."),
+        ],
+        final_query="What is the user's current browser?",
+        must_contain=["Chrome"],
+        must_not_contain=["switched to Brave"],
+    ),
+    GeneratedCase(
+        id="adv_recursive_supersession_02",
+        family="drift",
+        # intent: vegetarian → omnivore → vegetarian again.
+        setup_facts=[
+            "User was vegetarian throughout 2019.",
+        ],
+        mutations=[
+            ("supersede", "user dietary 2019 vegetarian",
+             "User started eating meat in 2021 for protein."),
+            ("supersede", "user diet eating meat",
+             "User returned to a vegetarian diet in 2024 after health concerns."),
+        ],
+        final_query="Does the user eat meat now?",
+        must_contain=["vegetarian"],
+        must_not_contain=["started eating meat in 2021"],
+    ),
+    GeneratedCase(
+        id="adv_recursive_supersession_03",
+        family="drift",
+        # intent: Apple → Android → Apple.
+        setup_facts=[
+            "User has an iPhone 12 as their primary device.",
+        ],
+        mutations=[
+            ("supersede", "user phone iPhone",
+             "User switched to a Samsung Galaxy in 2023 for the camera."),
+            ("supersede", "user phone Samsung",
+             "User came back to iPhone 15 Pro in 2025 for ecosystem reasons."),
+        ],
+        final_query="What phone does the user have?",
+        must_contain=["iPhone 15 Pro"],
+        must_not_contain=["Samsung Galaxy"],
+    ),
+    GeneratedCase(
+        id="adv_recursive_supersession_04",
+        family="drift",
+        # intent: Berlin → Lisbon → Berlin.
+        setup_facts=[
+            "User lived in Berlin from 2015 to 2020.",
+        ],
+        mutations=[
+            ("supersede", "user residence Berlin 2015",
+             "User moved to Lisbon in 2020 for the climate."),
+            ("supersede", "user residence Lisbon",
+             "User returned to Berlin in 2024 after their family relocated."),
+        ],
+        final_query="Where does the user live now?",
+        must_contain=["Berlin"],
+        must_not_contain=["moved to Lisbon in 2020"],
+    ),
+    GeneratedCase(
+        id="adv_recursive_supersession_05",
+        family="drift",
+        # intent: Mac → Linux → Mac (developer workstation).
+        setup_facts=[
+            "Developer uses macOS on their primary workstation.",
+        ],
+        mutations=[
+            ("supersede", "developer workstation OS",
+             "Developer switched to Ubuntu Linux in 2023 for kernel work."),
+            ("supersede", "developer workstation Linux",
+             "Developer switched back to macOS in 2025 for video editing."),
+        ],
+        final_query="What OS does the developer use?",
+        must_contain=["macOS"],
+        must_not_contain=["Ubuntu Linux in 2023"],
+    ),
+    GeneratedCase(
+        id="adv_recursive_supersession_06",
+        family="drift",
+        # intent: dog → cat → dog.
+        setup_facts=[
+            "User owned a Golden Retriever named Buddy until 2020.",
+        ],
+        mutations=[
+            ("supersede", "user pet Golden Retriever",
+             "User adopted two cats in 2021 after Buddy passed away."),
+            ("supersede", "user pets cats",
+             "User adopted a Border Collie puppy in 2025; the cats live with relatives."),
+        ],
+        final_query="What kind of pet does the user have now?",
+        must_contain=["Border Collie"],
+        must_not_contain=["adopted two cats in 2021"],
+    ),
+    GeneratedCase(
+        id="adv_recursive_supersession_07",
+        family="drift",
+        # intent: married → divorced → married (different spouse).
+        setup_facts=[
+            "User was married to Alex in 2015.",
+        ],
+        mutations=[
+            ("supersede", "user marital status Alex",
+             "User got divorced from Alex in 2020."),
+            ("supersede", "user marital status divorced",
+             "User married Jordan in 2024 after a long engagement."),
+        ],
+        final_query="Is the user married?",
+        must_contain=["married Jordan"],
+        must_not_contain=["divorced from Alex"],
+    ),
+    GeneratedCase(
+        id="adv_recursive_supersession_08",
+        family="drift",
+        # intent: Slack → Discord → Slack at workplace.
+        setup_facts=[
+            "Team uses Slack as primary communication tool since 2018.",
+        ],
+        mutations=[
+            ("supersede", "team primary communication Slack",
+             "Team migrated to Discord in 2023 to save on costs."),
+            ("supersede", "team communication Discord",
+             "Team moved back to Slack in 2025 after Discord lacked compliance features."),
+        ],
+        final_query="What tool does the team use for communication?",
+        must_contain=["Slack"],
+        must_not_contain=["migrated to Discord in 2023"],
+    ),
+]
+
+
 # ─── master list ───────────────────────────────────────────────────
 
 ATTACK_CATEGORIES: dict[str, list[GeneratedCase]] = {
-    "substring_trap":          ADV_SUBSTRING_TRAP,
-    "prefix_collision":        ADV_PREFIX_COLLISION,
-    "paraphrase_supersession": ADV_PARAPHRASE,
-    "negation_trap":           ADV_NEGATION,
-    "temporal_qualifier":      ADV_TEMPORAL,
-    "shared_attribute":        ADV_SHARED_ATTR,
-    "compound_fact":           ADV_COMPOUND,
-    "identifier_obfuscation":  ADV_IDENTIFIER_OBFUSCATION,
+    "substring_trap":           ADV_SUBSTRING_TRAP,
+    "prefix_collision":         ADV_PREFIX_COLLISION,
+    "paraphrase_supersession":  ADV_PARAPHRASE,
+    "negation_trap":            ADV_NEGATION,
+    "temporal_qualifier":       ADV_TEMPORAL,
+    "shared_attribute":         ADV_SHARED_ATTR,
+    "compound_fact":            ADV_COMPOUND,
+    "identifier_obfuscation":   ADV_IDENTIFIER_OBFUSCATION,
+    "cross_lingual_identifier": ADV_CROSS_LINGUAL_IDENTIFIER,
+    "recursive_supersession":   ADV_RECURSIVE_SUPERSESSION,
 }
 
 ADVERSARIAL_TESTS: list[GeneratedCase] = [

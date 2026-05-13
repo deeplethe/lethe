@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/slogan.svg" alt="Lethe is more than agent memory. It's the first AI memory built to forget." width="640" />
+  <img src="assets/slogan.svg" alt="The first AI memory built to forget." width="640" />
 </p>
 
 <p align="center">

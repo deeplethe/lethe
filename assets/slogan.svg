@@ -1,15 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 130" role="img"
-     aria-label="Lethe is more than agent memory. It's the first AI memory built to forget.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 80" role="img"
+     aria-label="The first AI memory built to forget.">
   <title>Lethe</title>
   <g font-family="'Source Serif 4', 'Source Serif Pro', Georgia, 'Times New Roman', serif"
      font-style="italic"
      text-anchor="middle"
      fill="#8b949e">
-    <text x="360" y="48" font-size="26" font-weight="400">
-      Lethe is more than agent memory.
-    </text>
-    <text x="360" y="90" font-size="22" font-weight="700">
-      It's the first AI memory built to forget.
+    <text x="360" y="52" font-size="30" font-weight="700">
+      The first AI memory built to forget.
     </text>
   </g>
 </svg>

@@ -8,6 +8,7 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/pylethe/"><img src="https://img.shields.io/pypi/v/pylethe?style=flat-square&color=blue&label=pypi" alt="PyPI" /></a>
   <img src="https://img.shields.io/badge/tests-14%2F14-success?style=flat-square" alt="tests" />
   <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="python" />
   <img src="https://img.shields.io/badge/MCP-ready-7C3AED?style=flat-square" alt="MCP" />
@@ -238,6 +239,18 @@ Roadmap (next):
 - **Production-density distractor corpora.**  Synthetic office-trivia
   fillers replaced with real long-form text (Wikipedia, code, emails)
   for a tougher recall environment.
+
+<br />
+
+## Star History
+
+<a href="https://star-history.com/#deeplethe/lethe&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=deeplethe/lethe&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=deeplethe/lethe&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=deeplethe/lethe&type=Date" width="640" />
+  </picture>
+</a>
 
 <br />
 

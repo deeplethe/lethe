@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Lethe" width="320" />
+  <img src="https://raw.githubusercontent.com/deeplethe/lethe/main/assets/logo.png" alt="Lethe" width="320" />
 </p>
 
 <p align="center">
@@ -129,8 +129,12 @@ Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 
 ## Quickstart
 
 ```bash
-pip install -e ".[embed,crypto,mcp]"
+pip install "pylethe[embed,crypto,mcp]"
 ```
+
+The PyPI distribution name is `pylethe` (the `lethe` slot was already
+taken on PyPI by an unrelated package); the import remains
+`from lethe import Lethe`.
 
 **Library**:
 

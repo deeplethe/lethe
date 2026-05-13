@@ -3,38 +3,63 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lethe"
+name = "pylethe"
 version = "1.0.0a0"
-description = "A river for AI memory. Forgetting is the architecture."
+description = "Local-first AI memory built to forget. Depth-axis architecture with verifiable purge receipts."
+readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
+authors = [
+    {name = "the Lethe authors"},
+]
+keywords = [
+    "ai", "memory", "agents", "agent-memory", "llm",
+    "rag", "mcp", "sqlite", "forgetting", "local-first",
+]
 classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Operating System :: OS Independent",
-    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
     "sqlite-vec>=0.1.6",
 ]
 
+[project.urls]
+Homepage      = "https://github.com/deeplethe/lethe"
+Repository    = "https://github.com/deeplethe/lethe"
+Issues        = "https://github.com/deeplethe/lethe/issues"
+Documentation = "https://github.com/deeplethe/lethe#readme"
+
 [project.optional-dependencies]
-embed = ["fastembed>=0.3"]
-llm = ["openai>=1.0"]
-nlp = ["spacy>=3.7"]
-mcp = ["mcp>=1.0"]
+embed  = ["fastembed>=0.3"]
+llm    = ["openai>=1.0"]
+nlp    = ["spacy>=3.7"]
+mcp    = ["mcp>=1.0"]
 crypto = ["cryptography>=42.0"]
-dev = ["pytest>=8", "ruff>=0.4"]
+dev    = ["pytest>=8", "ruff>=0.4", "build", "twine"]
 
 [project.scripts]
-lethe = "lethe.cli:main"
+lethe     = "lethe.cli:main"
 lethe-mcp = "lethe.mcp_server:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where   = ["."]
 include = ["lethe*"]
+
+[tool.setuptools.package-data]
+# schema.sql is loaded at runtime by Lethe._init_schema(); MUST ship in the wheel
+lethe = ["schema.sql"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

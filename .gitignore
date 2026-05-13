@@ -15,3 +15,5 @@ dist/
 bench/_runs_*/
 bench/longmemeval_*.json
 bench/results_*.jsonl
+
+_pypi_smoke/

@@ -100,6 +100,12 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--distractors", type=int, default=4,
                         help="Filler facts mixed into each case (default 4)")
+    parser.add_argument("--suite", default="auto",
+                        choices=["auto", "smoke", "template", "adversarial"],
+                        help="Which test set to run.  "
+                             "'auto' (default): smoke if --scale=0, template "
+                             "if --scale>0.  'adversarial' runs the 64 "
+                             "hand-crafted cases (v0.2).")
     args = parser.parse_args()
 
     if sys.stdout.encoding.lower() != "utf-8":
@@ -130,15 +136,24 @@ def main() -> None:
     else:
         raise ValueError(args.adapter)
 
-    if args.scale > 0:
+    if args.suite == "adversarial":
+        if args.lang != "en":
+            raise SystemExit("adversarial suite is English-only in v0.2")
+        from bench.forgeteval.adversarial import ADVERSARIAL_TESTS
+        test_set = ADVERSARIAL_TESTS
+    elif args.suite == "template" or (args.suite == "auto" and args.scale > 0):
+        if args.scale <= 0:
+            raise SystemExit("--suite template requires --scale N")
         from bench.forgeteval.generate import generate
         test_set = generate(args.scale, seed=args.seed,
                             distractors=args.distractors,
                             lang=args.lang)
-    elif args.lang != "en":
-        raise SystemExit("non-English smoke set not curated; use --scale N")
-    else:
+    elif args.suite == "smoke" or args.suite == "auto":
+        if args.lang != "en":
+            raise SystemExit("non-English smoke set not curated; use --scale N")
         test_set = ALL_TESTS
+    else:
+        raise ValueError(args.suite)
 
     print(f"\nrunning {len(test_set)} tests against {adapter.name}...\n")
     summary = run_adapter(adapter, test_set, verbose=(args.scale == 0))

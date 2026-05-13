@@ -36,16 +36,99 @@ class Adapter(Protocol):
 
 # ─── Lethe adapter ────────────────────────────────────────────────────
 
+# LLM-hook prompts.  Kept as module-level constants so they're easy to
+# audit and to swap.  Both prompts ask the model for a small, well-
+# structured JSON response — no free-form prose, no embedded reasoning.
+# This keeps the parsing tiny and the LLM call narrow.
+
+LLM_PROMPT_SUPERSEDE = """\
+You are deciding how to apply a memory supersession.
+
+EXISTING_MEMORY:  {old_text}
+SUPERSEDE_QUERY:  {query}
+NEW_FACT:         {new_text}
+
+The supersession may be ATOMIC (replace the whole memory with NEW_FACT)
+or PARTIAL (the existing memory carries multiple independent facts and
+only the one matching the query should be replaced).
+
+Reply with exactly one JSON object and nothing else:
+
+  {{"mode": "atomic"}}
+or
+  {{"mode": "partial", "merged_text": "<the merged sentence>"}}
+
+For partial mode, "merged_text" must preserve every fact in
+EXISTING_MEMORY that is NOT targeted by SUPERSEDE_QUERY, and must
+contain NEW_FACT's content.  Do not add facts not present in either
+source.
+"""
+
+LLM_PROMPT_PURGE_MATCH = """\
+You are grouping memory items that describe the same underlying
+identifier.  Surface-form variations (case, whitespace, quoting,
+leading @, optional separators in phone numbers / UUIDs / SSNs /
+credit cards) all count as the same identifier.
+
+TARGET_IDENTIFIER:  {target}
+
+CANDIDATES (one per line, indexed from 0):
+{candidates}
+
+Return exactly one JSON object listing the candidate indices whose
+text describes the SAME identifier as the target.  Distinct
+identifiers that happen to share a prefix (e.g. alice@acme.io vs
+alice.smith@acme.io, 12345 vs 123456) MUST NOT be grouped.
+
+  {{"matching_indices": [<int>, ...]}}
+"""
+
+
+def _parse_json_response(s: str) -> dict:
+    """Extract the first JSON object from a model response, tolerating
+    fenced code blocks or surrounding prose.  Raises ValueError if no
+    JSON object is found."""
+    import json
+    import re as _re
+    m = _re.search(r"\{[\s\S]*\}", s)
+    if not m:
+        raise ValueError(f"no JSON object in model response: {s!r}")
+    return json.loads(m.group(0))
+
+
 class LetheAdapter:
+    """Default ForgetEval adapter for Lethe.
+
+    With ``llm=None`` (the default), the adapter exposes only Lethe's
+    deterministic primitives and ships no semantic heuristics:
+
+      - supersede  →  atomic: wipe the best BM25 match, inscribe new
+      - release    →  adaptive-gap (a documented numerical procedure,
+                      not a string heuristic)
+      - purge      →  case-insensitive equality of the BM25-top-1 text,
+                      plus exact-text duplicates
+
+    With ``llm`` set to a ``Callable[[str], str]`` that takes a prompt
+    and returns a model response, the adapter routes semantic decisions
+    through the LLM — clause-aware supersede and identifier-equivalent
+    purge.  The recall hot path remains LLM-free in both modes; only
+    the explicit mutation operations consult the model, and only once
+    per call.
+    """
+
     name = "lethe"
 
-    def __init__(self, embedder, vector_dim: int = 384, llm=None):
+    def __init__(self, embedder, vector_dim: int = 384, *,
+                 llm=None, lethe_llm=None):
         from lethe import Lethe
         self._Lethe = Lethe
         self.embedder = embedder
         self.vector_dim = vector_dim
-        self.llm = llm
+        self.llm = llm                 # for supersede/purge planning
+        self.lethe_llm = lethe_llm     # passed through to Lethe(...)
         self.lethe = None
+        if llm is not None:
+            self.name = "lethe+llm"
 
     def reset(self) -> None:
         if self.lethe is not None:
@@ -56,7 +139,7 @@ class LetheAdapter:
         self.lethe = self._Lethe(":memory:",
                                  vector_dim=self.vector_dim,
                                  embedder=self.embedder,
-                                 llm=self.llm)
+                                 llm=self.lethe_llm)
 
     def inscribe(self, text: str) -> int:
         return self.lethe.inscribe(text)
@@ -65,23 +148,48 @@ class LetheAdapter:
         results = self.lethe.recall(query, k=k, hybrid=False)
         return [r.memory.text for r in results]
 
+    # ─── supersede ──────────────────────────────────────────────────
+
     def supersede(self, old_query: str, new_text: str) -> None:
-        # Find the best-matching memory for old_query, supersede it with new_text.
         hits = self.lethe.recall(old_query, k=1, hybrid=False)
         if not hits:
-            # If nothing matches, just inscribe the new fact.
             self.lethe.inscribe(new_text)
             return
+        target = hits[0]
+
+        if self.llm is not None:
+            plan = self._llm_plan_supersede(target.memory.text,
+                                            old_query, new_text)
+            if plan.get("mode") == "partial":
+                merged = plan.get("merged_text") or ""
+                if merged.strip():
+                    self.lethe.surrender(target.memory.id, mode="edit",
+                                         new_text=merged)
+                    return
+            # mode "atomic" or unrecognized → fall through to atomic
+
         self.lethe.surrender(
-            {"old": hits[0].memory.id, "new": new_text},
+            {"old": target.memory.id, "new": new_text},
             mode="supersede",
         )
+
+    def _llm_plan_supersede(self, old_text: str, old_query: str,
+                             new_text: str) -> dict:
+        prompt = LLM_PROMPT_SUPERSEDE.format(
+            old_text=old_text, query=old_query, new_text=new_text,
+        )
+        try:
+            return _parse_json_response(self.llm(prompt))
+        except Exception:
+            return {"mode": "atomic"}    # any failure → safe default
+
+    # ─── release ────────────────────────────────────────────────────
 
     @staticmethod
     def _gap_threshold(sims: list[float], min_gap: float = 0.05) -> float:
         """Find the natural cutoff in a sorted-descending similarity list:
         the midpoint of the largest gap.  Falls back to top * 0.95 when
-        there is no significant gap (i.e. only one tight cluster of hits)."""
+        there is no significant gap (only one tight cluster of hits)."""
         if not sims:
             return float("inf")
         if len(sims) == 1:
@@ -107,19 +215,50 @@ class LetheAdapter:
         self.lethe.surrender(ids, mode="release")
         return len(ids)
 
+    # ─── purge ──────────────────────────────────────────────────────
+
+    @staticmethod
+    def _norm_lexical(s: str) -> str:
+        """Minimal text normalization: NFKC + lowercase + collapsed
+        whitespace.  This is plain Unicode hygiene — not an identifier-
+        aware canonicalizer.  Two strings that differ only in case or
+        whitespace will compare equal under this norm; anything else
+        (separators, quoting, format variations) is left to the LLM."""
+        import unicodedata
+        return " ".join(unicodedata.normalize("NFKC", s).lower().split())
+
     def purge(self, query: str) -> int:
-        # Purge by identifier is a *lexical* operation, not a semantic one.
-        # Two customers named alice@acme / bob@acme look almost identical
-        # to a vector embedder, and RRF blending can invert the rank — so
-        # we delete by pure BM25 ranking instead.  Take the top-1 plus any
-        # exact-text duplicates (same fact inscribed twice).
-        hits = self.lethe.recall(query, k=5, lexical=True)
+        hits = self.lethe.recall(query, k=20, lexical=True)
         if not hits:
             return 0
-        target_text = hits[0].memory.text
-        ids = [h.memory.id for h in hits if h.memory.text == target_text]
+
+        if self.llm is not None:
+            matched = self._llm_match_for_purge(query, hits)
+            if matched:
+                self.lethe.surrender(matched, mode="purge")
+                return len(matched)
+            # Empty LLM result → fall through to default below.
+
+        # Default: group by NFKC-lowercase-whitespace equivalence.
+        target = self._norm_lexical(hits[0].memory.text)
+        ids = [h.memory.id for h in hits
+               if self._norm_lexical(h.memory.text) == target]
         self.lethe.surrender(ids, mode="purge")
         return len(ids)
+
+    def _llm_match_for_purge(self, query: str, hits: list) -> list[int]:
+        candidates = "\n".join(f"{i}: {h.memory.text}"
+                               for i, h in enumerate(hits))
+        prompt = LLM_PROMPT_PURGE_MATCH.format(
+            target=query, candidates=candidates,
+        )
+        try:
+            plan = _parse_json_response(self.llm(prompt))
+            picks = plan.get("matching_indices") or []
+            return [hits[i].memory.id for i in picks
+                    if isinstance(i, int) and 0 <= i < len(hits)]
+        except Exception:
+            return []
 
 
 # ─── Mem0 adapter ─────────────────────────────────────────────────────

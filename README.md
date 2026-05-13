@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/deeplethe/lethe/main/assets/logo.png" alt="Lethe" width="320" />
+  <img src="assets/logo.png" alt="Lethe" width="320" />
 </p>
 
 <p align="center">

@@ -106,7 +106,7 @@ no LLM judge, deterministic.  Full methodology:
 |---------------|------:|------:|--------:|------:|------:|------------------------------:|
 | **Lethe v1**  | 100%  | 100%  | 98%     | 100%  | 99%   | **99.3%** (993 / 1000)        |
 | Mem0 (2.0.2)  | 100%  | 100%  | 70%     | 75%   | 100%  | 88.8%                         |
-| MemPalace     | N/A   | N/A   | N/A     | N/A   | N/A   | 0% (no forgetting primitives) |
+| MemPalace     | 0%    | 0%    | 0%      | 0%    | 0%    | 0% (no forgetting primitives) |
 
 Mem0 ties on supersession / decay / drift but breaks at the precision
 operations: forgetting one entity without bleeding into near-neighbors

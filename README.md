@@ -248,6 +248,16 @@ Roadmap (next):
 - **Production-density distractor corpora.**  Synthetic office-trivia
   fillers replaced with real long-form text (Wikipedia, code, emails)
   for a tougher recall environment.
+- **Pluggable retrieval backends.**  A `Backend` protocol so the
+  default SQLite + vec0 + FTS5 stack can be swapped for Postgres
+  + pgvector, Pinecone, Weaviate, or a custom store.  The depth axis
+  and surrender / recall semantics stay identical — only the storage
+  layer changes.
+- **Optional LLM hooks at inscribe and consolidation time.**  Entity
+  extraction at inscribe, semantic deduplication, and LLM-guided
+  consolidation policies (which facts to promote, which to release).
+  The **recall path stays LLM-free** — determinism and latency
+  are non-negotiable on the hot path.
 
 <br />
 

@@ -3,11 +3,8 @@
 </p>
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)"  srcset="assets/slogan-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="assets/slogan-light.svg" />
-    <img src="assets/slogan-light.svg" alt="Lethe is more than agent memory. It's the first AI memory built to forget." width="640" />
-  </picture>
+  <img src="assets/slogan-light.svg#gh-light-mode-only" alt="Lethe is more than agent memory. It's the first AI memory built to forget." width="640" />
+  <img src="assets/slogan-dark.svg#gh-dark-mode-only"  alt="Lethe is more than agent memory. It's the first AI memory built to forget." width="640" />
 </p>
 
 <p align="center">

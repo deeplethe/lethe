@@ -204,7 +204,6 @@ def cmd_purge(args):
 def cmd_keygen(args):
     from lethe.receipt import (
         default_key_path, generate_key, save_private_key,
-        public_key_from_private,
     )
     out = Path(args.out) if args.out else default_key_path()
     if out.exists() and not args.force:
@@ -242,7 +241,7 @@ def cmd_verify_receipt(args):
         print(f"  signature_valid: {result['signature_valid']}")
         print(f"  log_root_valid:  {result['log_root_valid']}")
         if result["issues"]:
-            print(f"  issues:")
+            print("  issues:")
             for i in result["issues"]:
                 print(f"    - {i}")
     return 0 if result["valid"] else 1

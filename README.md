@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://pypi.org/project/pylethe/"><img src="https://img.shields.io/pypi/v/pylethe?style=flat-square&color=blue&label=pypi" alt="PyPI" /></a>
-  <img src="https://img.shields.io/badge/tests-14%2F14-success?style=flat-square" alt="tests" />
+  <a href="https://github.com/deeplethe/lethe/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/deeplethe/lethe/ci.yml?style=flat-square&label=tests" alt="tests" /></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="python" />
   <img src="https://img.shields.io/badge/MCP-ready-7C3AED?style=flat-square" alt="MCP" />
   <img src="https://img.shields.io/badge/license-MIT-007EC6?style=flat-square" alt="license" />

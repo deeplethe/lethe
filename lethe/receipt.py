@@ -22,9 +22,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from dataclasses import asdict, dataclass, field, fields
+from dataclasses import asdict, dataclass, fields
 from pathlib import Path
-from typing import Optional
 
 try:
     from cryptography.exceptions import InvalidSignature

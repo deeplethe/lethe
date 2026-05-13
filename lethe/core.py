@@ -692,11 +692,14 @@ class Lethe:
               "timestamp, meta FROM event WHERE 1=1"
         args: list = []
         if since is not None:
-            sql += " AND timestamp >= ?"; args.append(since)
+            sql += " AND timestamp >= ?"
+            args.append(since)
         if until is not None:
-            sql += " AND timestamp <= ?"; args.append(until)
+            sql += " AND timestamp <= ?"
+            args.append(until)
         if kind is not None:
-            sql += " AND kind = ?"; args.append(kind)
+            sql += " AND kind = ?"
+            args.append(kind)
         sql += " ORDER BY timestamp ASC"
         rows = self.conn.execute(sql, args).fetchall()
         out: list[Event] = []

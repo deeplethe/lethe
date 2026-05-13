@@ -115,6 +115,15 @@ operations: forgetting one entity without bleeding into near-neighbors
 are an honest report that the library was built without `supersede`,
 `release`, or `purge`.
 
+In production this maps to real failures.  **70% amnesia** means three
+in ten *"forget this user"* requests leave fragments reachable to
+other queries — a GDPR liability and a stale-context bug.  **75%
+purge** means one in four deletions either miss the target or take a
+neighbor with them — the silent delete-by-similarity failure that
+bricks compliance audits.  **MemPalace's 0%** is the opposite failure:
+a GDPR Article 17 right-to-be-forgotten request becomes a manual
+data-migration project, not a one-line API call.
+
 Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 200`
 
 > ForgetEval is downstream of the depth model — and the depth model

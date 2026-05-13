@@ -127,12 +127,19 @@ negation, temporal qualifiers, shared attributes, compound facts,
 identifier obfuscation, cross-lingual identifiers, recursive
 supersession).  See [docs/forgeteval_adversarial.md](docs/forgeteval_adversarial.md).
 
-| System            | adversarial overall | wall / case | trade-off shape                                |
-|-------------------|--------------------:|------------:|------------------------------------------------|
-| **Lethe v1**      |  70 / 112 (62.5 %)  |  ~48 ms     | 100 % prefix_collision, 0 % cross_lingual      |
-| Mem0 v2.0.2       |  76 / 112 (67.9 %)  |  ~527 ms    | 50 % prefix_collision, 50 % cross_lingual      |
-| LangMem (LangGraph)|  69 / 112 (61.6 %) |  ~56 ms     | 94 % prefix_collision, 0 % cross_lingual       |
-| MemPalace         |   0 / 112 ( 0.0 %)  |  ~167 ms    | no deletion primitives                         |
+| System              | adversarial overall  | wall / case  | trade-off shape                                |
+|---------------------|---------------------:|-------------:|------------------------------------------------|
+| **Lethe v1**        |  70 / 112 (62.5 %)   |  ~48 ms      | 100 % prefix_collision, 0 % cross_lingual      |
+| Mem0 v2.0.2         |  76 / 112 (67.9 %)   |  ~527 ms     | 50 % prefix_collision, 50 % cross_lingual      |
+| LangMem (LangGraph) |  69 / 112 (61.6 %)   |  ~56 ms      | 94 % prefix_collision, 0 % cross_lingual       |
+| MemPalace           |   0 / 112 ( 0.0 %)   |  ~167 ms     | no deletion primitives                         |
+| **Lethe + LLM**     | **108 / 112 (96.4 %)** | ~2.2 s (mutations only)  | 100 % cross_lingual, 100 % shared_attribute; 8 / 10 categories at 100 % |
+
+The Lethe+LLM row uses the optional `llm: Callable[[str], str]`
+hook on `LetheAdapter` wired to DeepSeek-V3 via SiliconFlow.
+Cost: ~$0.05 for a full 112-case run.  The recall hot path
+remains LLM-free; only the three mutation operations (`supersede`,
+`purge`, `release`) consult the model.
 
 Statistically separated per-category claims at p < 0.05 (non-
 overlapping Wilson 95 % CIs at n=16):

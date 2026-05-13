@@ -75,27 +75,32 @@ one axis, one mental model.
 
 ## Benchmarks
 
-ForgetEval is downstream of the depth model — and the depth model is
-downstream of ForgetEval.  We built one to test the other; the bench
-then reshaped the architecture.  A failing `purge_gdpr` case in
-particular forced `recall(lexical=True)` into the core as a first-class
-primitive.  Both numbers below reflect that loop.
+Two axes.  The conventional one: *can a memory system find a fact when
+you need it?*  The one we propose: *can it let go of a fact when you
+ask?*  Most frameworks score on the first; Lethe scores on both.
 
-**LongMemEval-S** (500 questions, MemPalace's own methodology, same
-`all-MiniLM-L6-v2`, zero API):
+### LongMemEval-S — retrieval (the conventional axis)
+
+500 questions on MemPalace's own evaluation methodology, same
+`all-MiniLM-L6-v2` embedder, zero API calls.
 
 | System          | R@1       | R@5       | R@10      | Wall   |
 |-----------------|-----------|-----------|-----------|--------|
 | MemPalace (raw) | 80.6%     | 96.6%     | 98.2%     | 12 min |
 | **Lethe v1**    | **85.4%** | **97.4%** | **99.0%** | 14 min |
 
-Recall@K is half the picture — forgetting is the other half, which
-is why we wrote ForgetEval.  But on the bench MemPalace built and
-headlines with, a single `depth` axis lands higher at every K than a
-palace of wings, rooms, and drawers — and the gap is **6× wider at
-R@1** (+4.8 pp vs +0.8 pp at R@5).
+Lethe leads at every K; the gap is **6× wider at R@1 than at R@5**
+(+4.8 pp vs +0.8 pp).  A single `depth` axis beats a palace of
+wings, rooms, and drawers — most clearly where it matters: at #1.
 
-**ForgetEval** (we propose; 1000 cases, 5 families, same embedder, no LLM):
+### ForgetEval — forgetting (the axis we propose)
+
+1000 generated cases across five families — **supersession**,
+**decay**, **amnesia**, **purge**, **drift** — each probing one
+structural property a memory system must exhibit to be safe in
+production.  Pass / fail is exact substring matching on top-k recall,
+no LLM judge, deterministic.  Full methodology:
+**[docs/forgeteval.md](docs/forgeteval.md)**.
 
 | System        | super | decay | amnesia | purge | drift | Overall                       |
 |---------------|------:|------:|--------:|------:|------:|------------------------------:|
@@ -103,13 +108,19 @@ R@1** (+4.8 pp vs +0.8 pp at R@5).
 | Mem0 (2.0.2)  | 100%  | 100%  | 70%     | 75%   | 100%  | 88.8%                         |
 | MemPalace     | N/A   | N/A   | N/A     | N/A   | N/A   | 0% (no forgetting primitives) |
 
-ForgetEval is the axis no other framework benchmarks: *can you forget
-on command?*  Five families probe supersession / decay / amnesia /
-purge / drift.  Pass / fail is exact substring matching on top-k recall,
-no LLM judge.  Full methodology, adapter contract, and reproduction
-commands: **[docs/forgeteval.md](docs/forgeteval.md)**.
+Mem0 ties on supersession / decay / drift but breaks at the precision
+operations: forgetting one entity without bleeding into near-neighbors
+(amnesia 70%) and deleting by identifier without over-pruning siblings
+(purge 75%).  MemPalace's zeros are not a benchmark failure — they
+are an honest report that the library was built without `supersede`,
+`release`, or `purge`.
 
 Reproduce: `py bench/forgeteval/run.py --adapter {lethe|mem0|mempalace} --scale 200`
+
+> ForgetEval is downstream of the depth model — and the depth model
+> is downstream of ForgetEval.  A failing `purge_gdpr` case in early
+> runs forced `recall(lexical=True)` into the core as a first-class
+> primitive.  Both tables above reflect that loop.
 
 <br />
 

@@ -1354,6 +1354,310 @@ ADV_IDENTIFIER_OBFUSCATION = [
         must_not_contain=["1234-USD holds the dollar",
                           "1234 (without currency suffix)"],
     ),
+    # ─── v0.5.1 redress: hand-crafted addition to bring
+    # identifier_obfuscation from n=18 (mode-A judge over-rejection)
+    # up to category parity with the rest of the suite (n=36).
+    # Admission protocol identical to the original 112 hand-crafted core.
+    GeneratedCase(
+        id="adv_identifier_obfuscation_19",
+        family="purge",
+        # intent: URL with/without scheme + www
+        setup_facts=[
+            "Customer's vendor profile is at https://www.acme.io/vendor.",
+            "Same profile, bare form: acme.io/vendor (no scheme, no www).",
+            "Vendor onboarding is finalized.",
+        ],
+        mutations=[("purge", "vendor profile at acme.io/vendor")],
+        final_query="Where is the vendor profile?",
+        must_contain=[],
+        must_not_contain=["https://www.acme.io/vendor",
+                          "acme.io/vendor (no scheme"],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_20",
+        family="purge",
+        # intent: URL with/without trailing slash
+        setup_facts=[
+            "Endpoint is registered at https://api.beta.io/v2/users.",
+            "Equivalent canonical: https://api.beta.io/v2/users/ (with trailing slash).",
+            "OAuth refresh ran cleanly overnight.",
+        ],
+        mutations=[("purge", "endpoint api.beta.io/v2/users")],
+        final_query="What endpoint is registered?",
+        must_contain=[],
+        must_not_contain=["api.beta.io/v2/users.",
+                          "api.beta.io/v2/users/ (with trailing"],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_21",
+        family="purge",
+        # intent: email with plus-tag (gmail-style aliases)
+        setup_facts=[
+            "Account holder email: charlie+work@gmail.com.",
+            "Same person, no plus-tag: charlie@gmail.com.",
+            "Promo codes expire on Sunday.",
+        ],
+        mutations=[("purge", "email charlie@gmail.com (with/without plus-tag)")],
+        final_query="What is the account holder's email?",
+        must_contain=[],
+        must_not_contain=["charlie+work@gmail.com.",
+                          "charlie@gmail.com."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_22",
+        family="purge",
+        # intent: handle with/without @ prefix
+        setup_facts=[
+            "Lead writer handle: @dora_writes.",
+            "Same handle without prefix: dora_writes.",
+            "Submissions are due by EOD Friday.",
+        ],
+        mutations=[("purge", "handle dora_writes (with/without @)")],
+        final_query="Who is the lead writer?",
+        must_contain=[],
+        must_not_contain=["@dora_writes.",
+                          "without prefix: dora_writes."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_23",
+        family="purge",
+        # intent: license plate with/without hyphen + case
+        setup_facts=[
+            "Vehicle plate: ABC-1234 registered to corporate fleet.",
+            "Same plate compact form: abc1234 (no hyphen, lowercase).",
+            "Pickup is at the north lot.",
+        ],
+        mutations=[("purge", "plate ABC-1234 / abc1234")],
+        final_query="What vehicle is on file?",
+        must_contain=[],
+        must_not_contain=["ABC-1234 registered",
+                          "abc1234 (no hyphen"],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_24",
+        family="purge",
+        # intent: credit card with/without spaces
+        setup_facts=[
+            "Saved card on file: 4111 1111 1111 1111.",
+            "Same PAN, unspaced: 4111111111111111.",
+            "Statement cycle closes on the 28th.",
+        ],
+        mutations=[("purge", "card 4111111111111111")],
+        final_query="What card is saved on file?",
+        must_contain=[],
+        must_not_contain=["4111 1111 1111 1111.",
+                          "4111111111111111."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_25",
+        family="purge",
+        # intent: IPv4 with/without leading zeros
+        setup_facts=[
+            "Server IP: 192.168.1.10 hosts the internal wiki.",
+            "Same host, padded form: 192.168.001.010.",
+            "Backups rotate every three days.",
+        ],
+        mutations=[("purge", "server 192.168.1.10")],
+        final_query="What is the wiki server's IP?",
+        must_contain=[],
+        must_not_contain=["192.168.1.10 hosts",
+                          "192.168.001.010."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_26",
+        family="purge",
+        # intent: time in 24h vs 12h
+        setup_facts=[
+            "Patient appointment is scheduled at 14:30.",
+            "Same appointment in 12-hour form: 2:30 PM.",
+            "Clinic policy requires 24h notice for changes.",
+        ],
+        mutations=[("purge", "appointment at 14:30 / 2:30 PM")],
+        final_query="When is the appointment?",
+        must_contain=[],
+        must_not_contain=["scheduled at 14:30.",
+                          "2:30 PM."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_27",
+        family="purge",
+        # intent: ISBN with/without hyphens
+        setup_facts=[
+            "Customer's last purchase: ISBN 978-0-13-468599-1.",
+            "Same ISBN, unformatted: 9780134685991.",
+            "Free shipping applies to orders over fifty dollars.",
+        ],
+        mutations=[("purge", "ISBN 9780134685991")],
+        final_query="Which book did the customer buy?",
+        must_contain=[],
+        must_not_contain=["978-0-13-468599-1.",
+                          "9780134685991."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_28",
+        family="purge",
+        # intent: file path back- vs forward-slash
+        setup_facts=[
+            "Build artefact lives at C:\\\\releases\\\\v3\\\\bundle.zip.",
+            "POSIX-equivalent path: C:/releases/v3/bundle.zip.",
+            "CI pipeline reruns nightly.",
+        ],
+        mutations=[("purge", "build path releases/v3/bundle.zip")],
+        final_query="Where is the v3 bundle?",
+        must_contain=[],
+        must_not_contain=["releases\\\\v3\\\\bundle.zip.",
+                          "releases/v3/bundle.zip."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_29",
+        family="purge",
+        # intent: hex color with/without # prefix
+        setup_facts=[
+            "Brand primary colour code: #FF7A00.",
+            "Same colour bare hex: FF7A00 (no hash).",
+            "Logo refresh shipped last week.",
+        ],
+        mutations=[("purge", "brand colour FF7A00")],
+        final_query="What is the brand primary colour?",
+        must_contain=[],
+        must_not_contain=["#FF7A00.",
+                          "FF7A00 (no hash)."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_30",
+        family="purge",
+        # intent: ZIP+4 with/without dash
+        setup_facts=[
+            "Mailing ZIP: 94107-1234.",
+            "Same ZIP+4 unhyphenated: 941071234.",
+            "Standard envelopes are restocked weekly.",
+        ],
+        mutations=[("purge", "ZIP 94107-1234")],
+        final_query="What ZIP is on the mailing record?",
+        must_contain=[],
+        must_not_contain=["94107-1234.",
+                          "941071234."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_31",
+        family="purge",
+        # intent: SKU with/without product prefix
+        setup_facts=[
+            "Restocked unit: SKU SHOE-RNN-42.",
+            "Same item, prefix-stripped: RNN-42 (no SHOE).",
+            "Warehouse audit happens monthly.",
+        ],
+        mutations=[("purge", "SKU SHOE-RNN-42 / RNN-42")],
+        final_query="What did we restock?",
+        must_contain=[],
+        must_not_contain=["SHOE-RNN-42.",
+                          "RNN-42 (no SHOE)."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_32",
+        family="purge",
+        # intent: license key with different separator
+        setup_facts=[
+            "Software licence key: XK7L-9P3Q-2RVA-8M1N.",
+            "Same key, dotted-form: XK7L.9P3Q.2RVA.8M1N.",
+            "Patch notes are published quarterly.",
+        ],
+        mutations=[("purge", "licence key XK7L-9P3Q-2RVA-8M1N")],
+        final_query="What is the licence key?",
+        must_contain=[],
+        must_not_contain=["XK7L-9P3Q-2RVA-8M1N.",
+                          "XK7L.9P3Q.2RVA.8M1N."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_33",
+        family="purge",
+        # intent: customer ID with leading zeros
+        setup_facts=[
+            "Customer record ID: 0000847.",
+            "Same record, zero-trimmed: 847.",
+            "Annual loyalty rewards run in December.",
+        ],
+        mutations=[("purge", "customer 847")],
+        final_query="Which customer record?",
+        must_contain=[],
+        must_not_contain=["ID: 0000847.",
+                          "zero-trimmed: 847."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_34",
+        family="purge",
+        # intent: reference number with/without # prefix
+        setup_facts=[
+            "Support ticket reference #INC-22184 is open.",
+            "Same ticket without hash: INC-22184.",
+            "On-call rotation begins next Monday.",
+        ],
+        mutations=[("purge", "ticket INC-22184")],
+        final_query="Which support ticket?",
+        must_contain=[],
+        must_not_contain=["#INC-22184 is open.",
+                          "without hash: INC-22184."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_35",
+        family="purge",
+        # intent: phone with parentheses around area code
+        setup_facts=[
+            "Emergency contact phone: (650) 555-0177.",
+            "Same number unbracketed: 650-555-0177.",
+            "Carrier portability rules updated this year.",
+        ],
+        mutations=[("purge", "phone 650-555-0177")],
+        final_query="What is the emergency contact number?",
+        must_contain=[],
+        must_not_contain=["(650) 555-0177.",
+                          "650-555-0177."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_36",
+        family="purge",
+        # intent: order number with/without category prefix
+        setup_facts=[
+            "Pending shipment: order ORD-2026-00921.",
+            "Same shipment short-form: 00921.",
+            "Distribution centre operates 24/7.",
+        ],
+        mutations=[("purge", "order ORD-2026-00921 / 00921")],
+        final_query="Which order is pending?",
+        must_contain=[],
+        must_not_contain=["ORD-2026-00921.",
+                          "short-form: 00921."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_37",
+        family="purge",
+        # intent: VIN with/without separators
+        setup_facts=[
+            "Test vehicle VIN: 1HGCM82633A004352.",
+            "Same VIN, dashed display: 1HGCM-82633-A004352.",
+            "Inspection date is set for next Tuesday.",
+        ],
+        mutations=[("purge", "VIN 1HGCM82633A004352")],
+        final_query="What is the test vehicle's VIN?",
+        must_contain=[],
+        must_not_contain=["1HGCM82633A004352.",
+                          "1HGCM-82633-A004352."],
+    ),
+    GeneratedCase(
+        id="adv_identifier_obfuscation_38",
+        family="purge",
+        # intent: BIC/SWIFT with/without branch code suffix
+        setup_facts=[
+            "Wire transfer BIC: DEUTDEFFXXX.",
+            "Same BIC without branch suffix: DEUTDEFF.",
+            "Currency hedge ratio is reviewed quarterly.",
+        ],
+        mutations=[("purge", "BIC DEUTDEFF")],
+        final_query="Which BIC is on the wire instruction?",
+        must_contain=[],
+        must_not_contain=["DEUTDEFFXXX.",
+                          "DEUTDEFF."],
+    ),
 ]
 
 
@@ -1758,6 +2062,23 @@ ATTACK_CATEGORIES: dict[str, list[GeneratedCase]] = {
     "cross_lingual_identifier": ADV_CROSS_LINGUAL_IDENTIFIER,
     "recursive_supersession":   ADV_RECURSIVE_SUPERSESSION,
 }
+
+# Merge in LLM-generated + oracle-validated cases if the optional
+# adversarial_generated module is present (produced by
+# scripts/generate_adversarial_cases.py).  Each case in that module
+# has been:
+#   1. Generated by DeepSeek-V3 (SiliconFlow)
+#   2. Structurally validated (no self-substring-traps)
+#   3. Oracle-validated (Lethe / Lethe+LLM passes the case)
+# so the generated set is held to the same correctness bar as the
+# hand-crafted v0.4 cases.
+try:
+    from bench.forgeteval.adversarial_generated import ADVERSARIAL_GENERATED
+    for _cat, _new in ADVERSARIAL_GENERATED.items():
+        if _cat in ATTACK_CATEGORIES:
+            ATTACK_CATEGORIES[_cat] = ATTACK_CATEGORIES[_cat] + _new
+except ImportError:
+    pass
 
 ADVERSARIAL_TESTS: list[GeneratedCase] = [
     case for cases in ATTACK_CATEGORIES.values() for case in cases

@@ -5,8 +5,11 @@
 -- depth > 1     pinned by mnemosyne or promoted
 
 -- Primary record. All status collapses into `depth`.
+-- AUTOINCREMENT keeps purged rowids out of the reuse pool, so the
+-- one-way-purge invariant (Proposition 1) holds: a row erased at t0
+-- can never be impersonated by a later inscribe sharing its id.
 CREATE TABLE IF NOT EXISTS memory (
-    rowid           INTEGER PRIMARY KEY,
+    rowid           INTEGER PRIMARY KEY AUTOINCREMENT,
     text            TEXT,
     depth           REAL DEFAULT 1.0,
     created_at      REAL,

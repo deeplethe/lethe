@@ -564,6 +564,126 @@ class LangGraphAdapter:
         return purged
 
 
+# ─── LangGraph + LLM hook adapter ─────────────────────────────────────
+
+class LangGraphLLMAdapter(LangGraphAdapter):
+    """LangGraph InMemoryStore augmented with the same LLM-hook contract
+    as LetheAdapter (supersede planner, release-match, purge-match).
+    Used to disentangle the LLM-hook lift from the edit-primitive lift
+    in the ablation: LangGraph has no in-place edit, so for partial
+    supersede the LLM hook returns a merged text which we add as a
+    fresh row replacing the old (functionally equivalent to Lethe's
+    edit primitive under substring scoring)."""
+
+    name = "langmem_llm"
+
+    def __init__(self, embedder, vector_dim: int = 384, *,
+                 llm=None):
+        super().__init__(embedder=embedder, vector_dim=vector_dim)
+        self.llm = llm
+
+    def supersede(self, old_query: str, new_text: str) -> None:
+        hits = self.store.search(self.ns, query=old_query, limit=1)
+        if not hits:
+            import uuid
+            self.store.put(self.ns, uuid.uuid4().hex, {"text": new_text})
+            return
+        target = hits[0]
+        target_text = target.value.get("text", "")
+
+        # LLM-planned supersede: atomic (replace whole row) vs partial
+        # (merge one clause into a fresh row).
+        if self.llm is not None:
+            try:
+                prompt = LLM_PROMPT_SUPERSEDE.format(
+                    old_text=target_text, query=old_query, new_text=new_text,
+                )
+                plan = _parse_json_response(self.llm(prompt))
+            except Exception:
+                plan = {"mode": "atomic"}
+            if plan.get("mode") == "partial":
+                merged = plan.get("merged_text") or ""
+                if merged.strip():
+                    # No native edit primitive -> delete old + add merged.
+                    self.store.delete(self.ns, target.key)
+                    import uuid
+                    self.store.put(self.ns, uuid.uuid4().hex,
+                                   {"text": merged})
+                    return
+            # atomic / fallthrough: delete old + add new
+        self.store.delete(self.ns, target.key)
+        import uuid
+        self.store.put(self.ns, uuid.uuid4().hex, {"text": new_text})
+
+    def release(self, query: str) -> int:
+        hits = self.store.search(self.ns, query=query, limit=20)
+        if not hits:
+            return 0
+
+        if self.llm is not None:
+            try:
+                candidates = "\n".join(
+                    f"{i}: {h.value.get('text', '')}"
+                    for i, h in enumerate(hits)
+                )
+                prompt = LLM_PROMPT_RELEASE_MATCH.format(
+                    request=query, candidates=candidates,
+                )
+                plan = _parse_json_response(self.llm(prompt))
+                picks = plan.get("matching_indices") or []
+                keys = [hits[i].key for i in picks
+                        if isinstance(i, int) and 0 <= i < len(hits)]
+                if keys:
+                    for k in keys:
+                        self.store.delete(self.ns, k)
+                    return len(keys)
+            except Exception:
+                pass  # fall through to gap-threshold
+
+        scores = [h.score or 0.0 for h in hits]
+        thr = LetheAdapter._gap_threshold(scores)
+        evicted = 0
+        for h in hits:
+            if (h.score or 0.0) >= thr:
+                self.store.delete(self.ns, h.key)
+                evicted += 1
+        return evicted
+
+    def purge(self, query: str) -> int:
+        hits = self.store.search(self.ns, query=query, limit=20)
+        if not hits:
+            return 0
+
+        if self.llm is not None:
+            try:
+                candidates = "\n".join(
+                    f"{i}: {h.value.get('text', '')}"
+                    for i, h in enumerate(hits)
+                )
+                prompt = LLM_PROMPT_PURGE_MATCH.format(
+                    target=query, candidates=candidates,
+                )
+                plan = _parse_json_response(self.llm(prompt))
+                picks = plan.get("matching_indices") or []
+                keys = [hits[i].key for i in picks
+                        if isinstance(i, int) and 0 <= i < len(hits)]
+                if keys:
+                    for k in keys:
+                        self.store.delete(self.ns, k)
+                    return len(keys)
+            except Exception:
+                pass  # fall through to default
+
+        # Default: NFKC-lowercase-whitespace equivalence on text.
+        target_text = LetheAdapter._norm_lexical(hits[0].value.get("text", ""))
+        purged = 0
+        for h in hits:
+            if LetheAdapter._norm_lexical(h.value.get("text", "")) == target_text:
+                self.store.delete(self.ns, h.key)
+                purged += 1
+        return purged
+
+
 # ─── Cognee adapter (requires LLM API key) ────────────────────────────
 
 class CogneeAdapter:

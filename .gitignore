@@ -21,3 +21,4 @@ _pypi_smoke/
 # Recipe outputs — receipts and demo files written when running recipes/
 recipes/*.json
 alice_purge_receipt.json
+.coverage

@@ -86,7 +86,8 @@ def report(summary: dict, adapter_name: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--adapter", default="lethe",
-                        choices=["lethe", "mem0", "mempalace"])
+                        choices=["lethe", "mem0", "mempalace",
+                                 "langmem", "cognee", "amem"])
     parser.add_argument("--lang", default="en", choices=["en", "zh", "ja"],
                         help="Case language pool (en/zh/ja). "
                              "Non-English auto-switches the default embedder "
@@ -100,6 +101,12 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--distractors", type=int, default=4,
                         help="Filler facts mixed into each case (default 4)")
+    parser.add_argument("--suite", default="auto",
+                        choices=["auto", "smoke", "template", "adversarial"],
+                        help="Which test set to run.  "
+                             "'auto' (default): smoke if --scale=0, template "
+                             "if --scale>0.  'adversarial' runs the 64 "
+                             "hand-crafted cases (v0.2).")
     args = parser.parse_args()
 
     if sys.stdout.encoding.lower() != "utf-8":
@@ -127,18 +134,41 @@ def main() -> None:
     elif args.adapter == "mempalace":
         from bench.forgeteval.adapter import MemPalaceAdapter
         adapter = MemPalaceAdapter()
+    elif args.adapter == "langmem":
+        print(f"loading embedder: {args.embedder}")
+        from fastembed import TextEmbedding
+        from bench.forgeteval.adapter import LangGraphAdapter
+        model = TextEmbedding(args.embedder)
+        def embedder(text: str) -> list[float]:
+            return list(next(iter(model.embed([text]))))
+        adapter = LangGraphAdapter(embedder=embedder, vector_dim=args.dim)
+    elif args.adapter == "cognee":
+        from bench.forgeteval.adapter import CogneeAdapter
+        adapter = CogneeAdapter()
+    elif args.adapter == "amem":
+        from bench.forgeteval.adapter import AMemAdapter
+        adapter = AMemAdapter()
     else:
         raise ValueError(args.adapter)
 
-    if args.scale > 0:
+    if args.suite == "adversarial":
+        if args.lang != "en":
+            raise SystemExit("adversarial suite is English-only in v0.2")
+        from bench.forgeteval.adversarial import ADVERSARIAL_TESTS
+        test_set = ADVERSARIAL_TESTS
+    elif args.suite == "template" or (args.suite == "auto" and args.scale > 0):
+        if args.scale <= 0:
+            raise SystemExit("--suite template requires --scale N")
         from bench.forgeteval.generate import generate
         test_set = generate(args.scale, seed=args.seed,
                             distractors=args.distractors,
                             lang=args.lang)
-    elif args.lang != "en":
-        raise SystemExit("non-English smoke set not curated; use --scale N")
-    else:
+    elif args.suite == "smoke" or args.suite == "auto":
+        if args.lang != "en":
+            raise SystemExit("non-English smoke set not curated; use --scale N")
         test_set = ALL_TESTS
+    else:
+        raise ValueError(args.suite)
 
     print(f"\nrunning {len(test_set)} tests against {adapter.name}...\n")
     summary = run_adapter(adapter, test_set, verbose=(args.scale == 0))

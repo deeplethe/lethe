@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: "Lethe: AI memory built to forget"
+message: "If you use Lethe or ForgetEval in your research, please cite the paper below."
+type: software
+authors:
+  - family-names: Yang
+    given-names: Dongxu
+    affiliation: DeepLethe
+repository-code: "https://github.com/deeplethe/lethe"
+license: MIT
+preferred-citation:
+  type: article
+  title: "Control-Plane Placement Shapes Forgetting: An Architectural Study of Agent Memory Across Thirteen System Configurations"
+  authors:
+    - family-names: Yang
+      given-names: Dongxu
+      affiliation: DeepLethe
+  year: 2026
+  journal: "arXiv preprint"
+  url: "https://arxiv.org/abs/2606.15903"
+  identifiers:
+    - type: other
+      value: "arXiv:2606.15903"
+      description: "arXiv preprint identifier"

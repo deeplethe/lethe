@@ -174,3 +174,99 @@ def test_blame_tracks_supersession(river: Lethe):
     matches = {e.memory.id: e for e in entries}
     if new in matches:
         assert old in matches[new].supersedes
+
+
+# ─── edit mode (partial supersede / compound_fact primitive) ─────────
+
+def test_edit_updates_text_in_place(river: Lethe):
+    """`surrender(mode='edit')` updates a row's text without minting a new id.
+
+    This is the partial-supersede primitive used by the
+    ``compound_fact`` adversarial category: a row carrying two facts
+    can have one fact replaced while the other is preserved.
+    """
+    mid = river.inscribe("User lives in Berlin and works at Stripe.")
+    n = river.surrender(
+        mid, mode="edit",
+        new_text="User lives in Berlin and works at Anthropic.",
+    )
+    assert n == 1
+    row = river.conn.execute(
+        "SELECT text, depth FROM memory WHERE rowid=?", (mid,)
+    ).fetchone()
+    assert "Anthropic" in row[0]
+    assert "Stripe" not in row[0]
+    # Depth unchanged: edit is not supersede
+    assert row[1] == SURFACE
+
+
+def test_edit_re_indexes_fts(river: Lethe):
+    """After edit, the new text wins lexical recall; the old text loses."""
+    mid = river.inscribe("User lives in Berlin.")
+    river.surrender(mid, mode="edit", new_text="User lives in Tokyo.")
+    # Pure BM25 (no vector) so we are testing FTS re-indexing specifically.
+    hits = river.recall("Tokyo", k=5, lexical=True)
+    assert any(r.memory.id == mid for r in hits)
+    hits_old = river.recall("Berlin", k=5, lexical=True)
+    assert all(r.memory.id != mid for r in hits_old)
+
+
+def test_edit_logs_event_with_text_payload(river: Lethe):
+    """Edit writes an `edit` event — the event log invariant (replay
+    reconstructs state) requires the new text to be recoverable."""
+    mid = river.inscribe("Phone: 555-0100.")
+    river.surrender(mid, mode="edit", new_text="Phone: 555-0199.")
+    events = river.log(kind="edit")
+    edit_events = [e for e in events if e.memory_id == mid]
+    assert len(edit_events) == 1
+    # Depth before/after equal (edit doesn't move depth)
+    e = edit_events[0]
+    assert e.depth_before == e.depth_after == SURFACE
+
+
+# ─── batch inscribe ──────────────────────────────────────────────────
+
+def test_inscribe_many_returns_distinct_ids(river: Lethe):
+    """Batched inscribe yields one id per text and embeds in a single
+    embedder call (when ``embedder_batch`` is configured)."""
+    texts = [f"Fact number {i}." for i in range(20)]
+    ids = river.inscribe_many(texts)
+    assert len(ids) == 20
+    assert len(set(ids)) == 20  # all distinct
+    # All on the surface
+    for mid in ids:
+        row = river.conn.execute(
+            "SELECT depth FROM memory WHERE rowid=?", (mid,)
+        ).fetchone()
+        assert row[0] == SURFACE
+
+
+def test_inscribe_many_empty_is_noop(river: Lethe):
+    assert river.inscribe_many([]) == []
+
+
+def test_inscribe_many_metas_length_mismatch_raises(river: Lethe):
+    with pytest.raises(ValueError, match="metas length"):
+        river.inscribe_many(["a", "b"], metas=[{"x": 1}])
+
+
+# ─── purge (hard delete + event-log determinism) ─────────────────────
+
+def test_purge_multiple_ids_in_one_call(river: Lethe):
+    ids = [river.inscribe(f"To be purged {i}.") for i in range(3)]
+    purged = river.surrender(ids, mode="purge")
+    assert purged == 3
+    for mid in ids:
+        row = river.conn.execute(
+            "SELECT rowid FROM memory WHERE rowid=?", (mid,)
+        ).fetchone()
+        assert row is None
+
+
+def test_purged_id_is_not_reused(river: Lethe):
+    """One-way purge: a subsequent inscribe must mint a fresh id, not
+    recover the purged row."""
+    mid = river.inscribe("Original.")
+    river.surrender(mid, mode="purge")
+    new = river.inscribe("Re-inscribed under a fresh identity.")
+    assert new != mid

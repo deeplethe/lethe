@@ -30,7 +30,7 @@ class ConsolidateReport:
     duration_ms: int = 0
 
 
-SurrenderMode = Literal["decay", "release", "supersede", "purge"]
+SurrenderMode = Literal["decay", "release", "supersede", "purge", "edit"]
 
 
 # ─── FTS5 sanitation ─────────────────────────────────────────────────
@@ -440,6 +440,7 @@ class Lethe:
         target: Union[int, list[int], dict],
         *,
         mode: SurrenderMode = "release",
+        new_text: Optional[str] = None,
     ) -> int:
         if mode == "decay":
             return self._apply_force(target, factor=0.5, kind="decay")
@@ -452,6 +453,10 @@ class Lethe:
                                    reason=target.get("reason", ""))
         if mode == "purge":
             return self._purge(target)
+        if mode == "edit":
+            if new_text is None:
+                raise ValueError("edit requires new_text=...")
+            return self._edit(target, new_text)
         raise ValueError(f"unknown mode: {mode}")
 
     def _apply_force(self, target, *, factor: float, kind: str) -> int:
@@ -508,6 +513,62 @@ class Lethe:
         )
         self.conn.commit()
         return new_id
+
+    def _edit(self, target, new_text: str) -> int:
+        """Replace the text (and re-index) of `target` row(s) without
+        changing depth.  Logs an `edit` event so time-travel still works.
+
+        Use case: a memory carries multiple facts as one inscribed row
+        (e.g. ``"User lives in Berlin and works at Stripe"``) and the
+        caller wants to update only one fact while preserving the
+        others.  Edit is the *partial-supersede* primitive that the
+        atomic ``supersede`` cannot express."""
+        ids = self._coerce_ids(target)
+        for mid in ids:
+            row = self.conn.execute(
+                "SELECT depth FROM memory WHERE rowid = ?", (mid,)
+            ).fetchone()
+            if not row:
+                continue
+            depth = row[0]
+            # Re-embed.  We need the embedder to be configured; if
+            # not, edit still rewrites the text but the vector stays
+            # stale (callers without an embedder shouldn't be using
+            # vector recall anyway).
+            if self.embedder is not None:
+                new_emb = self.embedder(new_text)
+                if len(new_emb) != self.vector_dim:
+                    raise ValueError(
+                        f"embedder returned dim {len(new_emb)} != "
+                        f"configured {self.vector_dim}"
+                    )
+                self.conn.execute(
+                    "DELETE FROM memory_vec WHERE rowid = ?", (mid,)
+                )
+                self.conn.execute(
+                    "INSERT INTO memory_vec(rowid, embedding) VALUES (?, ?)",
+                    (mid, sqlite_vec.serialize_float32(new_emb)),
+                )
+            # Always update text + FTS5 (no embedder still re-indexes
+            # the lexical side).
+            self.conn.execute(
+                "UPDATE memory SET text = ? WHERE rowid = ?",
+                (new_text, mid),
+            )
+            self.conn.execute(
+                "DELETE FROM memory_fts WHERE rowid = ?", (mid,)
+            )
+            self.conn.execute(
+                "INSERT INTO memory_fts(rowid, text) VALUES (?, ?)",
+                (mid, new_text),
+            )
+            # Depth doesn't change; we log an edit event with the same
+            # before/after depth so the event-log invariant holds and
+            # time-travel can reconstruct the text at any past instant.
+            self._log_event(mid, "edit", depth, depth,
+                            meta={"new_text": new_text})
+        self.conn.commit()
+        return len(ids)
 
     def _purge(self, target) -> int:
         ids = self._coerce_ids(target)

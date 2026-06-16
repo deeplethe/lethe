@@ -122,32 +122,35 @@ the two families that probe width-control and identifier precision.
 MemPalace returns 0 because the API has no deletion primitives.
 
 For more discriminative comparison we run **ForgetEval-Adv**, a
-112-case hand-crafted layer covering 10 attack categories
-(substring traps, prefix collisions, paraphrase supersession,
-negation, temporal qualifiers, shared attributes, compound facts,
-identifier obfuscation, cross-lingual identifiers, recursive
-supersession).  See [docs/forgeteval_adversarial.md](docs/forgeteval_adversarial.md).
+385-case adversarial layer (132 hand-crafted + 253 LLM-drafted,
+oracle-validated) covering 10 attack categories (substring traps,
+prefix collisions, paraphrase supersession, negation, temporal
+qualifiers, shared attributes, compound facts, identifier
+obfuscation, cross-lingual identifiers, recursive supersession).
+See [docs/forgeteval_adversarial.md](docs/forgeteval_adversarial.md).
 
-| System              | adversarial overall  | wall / case  | trade-off shape                                |
-|---------------------|---------------------:|-------------:|------------------------------------------------|
-| **Lethe v1**        |  70 / 112 (62.5 %)   |  ~48 ms      | 100 % prefix_collision, 0 % cross_lingual      |
-| Mem0 v2.0.2         |  76 / 112 (67.9 %)   |  ~527 ms     | 50 % prefix_collision, 50 % cross_lingual      |
-| LangMem (LangGraph) |  69 / 112 (61.6 %)   |  ~56 ms      | 94 % prefix_collision, 0 % cross_lingual       |
-| MemPalace           |   0 / 112 ( 0.0 %)   |  ~167 ms     | no deletion primitives                         |
-| **Lethe + LLM**     | **108 / 112 (96.4 %)** | ~2.2 s (mutations only)  | 100 % cross_lingual, 100 % shared_attribute; 8 / 10 categories at 100 % |
+| System              | adversarial overall    | trade-off shape                                 |
+|---------------------|-----------------------:|-------------------------------------------------|
+| **Lethe v1**        |  244 / 385 (63.4 %)    | 82 % prefix_collision, 0 % cross_lingual         |
+| Mem0 v2.0.2         |  263 / 385 (68.3 %)    | multi-signal scoring, weaker identifier precision |
+| LangGraph           |  242 / 385 (62.9 %)    | 0 % cross_lingual, no native edit primitive      |
+| MemPalace           |    0 / 385 ( 0.0 %)    | no deletion primitives                           |
+| **Lethe + LLM**     | **353 / 385 (91.7 %)** | recovers cross_lingual + intent-aware deletion   |
+| **LangGraph + LLM** | **359 / 385 (93.2 %)** | same hook, high-recall backbone                  |
 
-The Lethe+LLM row uses the optional `llm: Callable[[str], str]`
-hook on `LetheAdapter` wired to DeepSeek-V3 via SiliconFlow.
-Cost: ~$0.05 for a full 112-case run.  The recall hot path
-remains LLM-free; only the three mutation operations (`supersede`,
-`purge`, `release`) consult the model.
+The three deterministic systems cluster in a **63–68 % band** with
+mutually overlapping Wilson CIs — the bench reads the trade-off, not
+a winner.  The discriminative signal is per-category: deterministic
+stores hold the lexical/temporal categories but fail canonicalization
+(Lethe 0 % cross_lingual, 5 % identifier_obfuscation).
 
-Statistically separated per-category claims at p < 0.05 (non-
-overlapping Wilson 95 % CIs at n=16):
-**Lethe > Mem0 on prefix_collision** (lexical-precise purge wins);
-**Mem0 > Lethe / LangMem on cross_lingual_identifier** (vector-soft
-matching wins).  Overall Wilson CIs of the three deterministic
-systems overlap — the bench reads the trade-off, not a winner.
+The +LLM rows use the optional `llm: Callable[[str], str]` hook on the
+adapter, wired to DeepSeek-V3 via SiliconFlow.  Cost: **~$0.17 for a
+full 385-case run**.  The recall hot path stays LLM-free; only the
+three mutation operations (`supersede`, `purge`, `release`) consult
+the model — and the +28 pt lift travels across backends (Lethe and
+LangGraph alike), so it is the *placement* of the hook, not the
+storage engine, that earns it.
 
 For attack categories that need semantic understanding the engine
 deliberately doesn't provide (compound_fact across all 3 systems,

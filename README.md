@@ -11,6 +11,7 @@
 </p>
 
 <p align="center">
+  <a href="https://arxiv.org/abs/2606.15903"><img src="https://img.shields.io/badge/arXiv-2606.15903-b31b1b?style=flat-square&logo=arxiv&logoColor=white" alt="arXiv" /></a>
   <a href="https://pypi.org/project/pylethe/"><img src="https://img.shields.io/pypi/v/pylethe.svg?style=flat-square&color=blue&label=PyPI&logo=pypi&logoColor=white" alt="PyPI" /></a>
   <a href="https://github.com/deeplethe/lethe/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/deeplethe/lethe/ci.yml?style=flat-square&label=tests" alt="tests" /></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="python" />
